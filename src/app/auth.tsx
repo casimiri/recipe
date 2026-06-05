@@ -1,0 +1,74 @@
+import React, { useState } from 'react';
+import { View, TextInput, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../theme/ThemeProvider';
+import { useAuth } from '../store/auth';
+import { Txt } from '../components/Txt';
+import { Icon } from '../components/Icon';
+import { PrimaryButton } from '../components/atoms';
+
+export default function Auth() {
+  const { t } = useTheme();
+  const { signIn, signUp } = useAuth();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const [mode, setMode] = useState<'in' | 'up'>('in');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = async () => {
+    setBusy(true);
+    setError(null);
+    const res = mode === 'in' ? await signIn(email.trim(), password) : await signUp(email.trim(), password);
+    setBusy(false);
+    if (res.error) setError(res.error);
+    else router.replace('/(tabs)');
+  };
+
+  const inputStyle = {
+    backgroundColor: t.surface2, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 15,
+    fontSize: 15, color: t.text, fontFamily: t.body, borderWidth: 1, borderColor: t.border,
+  } as const;
+
+  return (
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: t.bg }}>
+      <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: insets.top + 40, paddingBottom: insets.bottom + 24, justifyContent: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 28 }}>
+          <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon.forkknife size={26} sw={2} color={t.accentText} />
+          </View>
+          <Txt style={{ fontWeight: '800', fontSize: 26, color: t.text }}>Recipe-Snap</Txt>
+        </View>
+        <Txt style={{ fontWeight: '800', fontSize: 24, color: t.text, marginBottom: 6 }}>
+          {mode === 'in' ? 'Welcome back' : 'Create your account'}
+        </Txt>
+        <Txt style={{ fontSize: 14.5, color: t.muted, marginBottom: 24 }}>
+          {mode === 'in' ? 'Sign in to sync your recipes everywhere.' : 'Start saving recipes from anywhere.'}
+        </Txt>
+
+        <View style={{ gap: 12, marginBottom: 8 }}>
+          <TextInput value={email} onChangeText={setEmail} placeholder="Email" placeholderTextColor={t.faint}
+            autoCapitalize="none" keyboardType="email-address" autoComplete="email" style={inputStyle} />
+          <TextInput value={password} onChangeText={setPassword} placeholder="Password" placeholderTextColor={t.faint}
+            secureTextEntry autoCapitalize="none" style={inputStyle} />
+        </View>
+
+        {error ? <Txt style={{ color: t.danger, fontSize: 13, marginBottom: 8, marginTop: 4 }}>{error}</Txt> : null}
+
+        <PrimaryButton t={t} full onPress={submit} disabled={busy || !email || !password} style={{ marginTop: 16, paddingVertical: 16 }}>
+          {busy ? 'Please wait…' : mode === 'in' ? 'Sign in' : 'Sign up'}
+        </PrimaryButton>
+
+        <Pressable onPress={() => { setMode(mode === 'in' ? 'up' : 'in'); setError(null); }} style={{ alignItems: 'center', marginTop: 18 }}>
+          <Txt style={{ color: t.muted, fontSize: 14 }}>
+            {mode === 'in' ? "Don't have an account? " : 'Already have an account? '}
+            <Txt style={{ color: t.accent, fontWeight: '700' }}>{mode === 'in' ? 'Sign up' : 'Sign in'}</Txt>
+          </Txt>
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}

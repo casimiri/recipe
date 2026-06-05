@@ -1,0 +1,34 @@
+project_id = "recipe-snap"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "recipesnap://"
+additional_redirect_urls = ["recipesnap://"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# For local dev convenience; require confirmation in production.
+enable_confirmations = false
+
+[functions.import-recipe]
+verify_jwt = false
+
+[functions.ai-tools]
+verify_jwt = false
