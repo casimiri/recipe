@@ -10,32 +10,57 @@ import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
 import { Dish, IconBtn, PrimaryButton, Sheet } from '../../components/atoms';
 import { fmtQty, mmss, convertUnit } from '../../utils/format';
+import { scheduleTimerDone, cancelNotif } from '../../lib/notify';
 import type { Tokens } from '../../theme/tokens';
 
-function useCountdown(initial: number) {
+function useCountdown(initial: number, onComplete?: () => void, body?: string) {
   const [left, setLeft] = useState(initial);
   const [running, setRunning] = useState(false);
   const ref = useRef<ReturnType<typeof setInterval> | null>(null);
-  useEffect(() => { setLeft(initial); setRunning(false); }, [initial]);
+  const notifId = useRef<string | null>(null);
+  const fired = useRef(false);
+
+  useEffect(() => { setLeft(initial); setRunning(false); fired.current = false; }, [initial]);
+
+  // While running, tick every second AND schedule a real OS notification for
+  // the end time — the JS interval is throttled when the app backgrounds, so
+  // the notification is what actually alerts the user then.
   useEffect(() => {
     if (!running) return;
-    ref.current = setInterval(() => {
-      setLeft((l) => {
-        if (l <= 1) { if (ref.current) clearInterval(ref.current); setRunning(false); return 0; }
-        return l - 1;
-      });
-    }, 1000);
-    return () => { if (ref.current) clearInterval(ref.current); };
+    let cancelled = false;
+    scheduleTimerDone(left, body ?? 'Your step timer finished.').then((id) => {
+      if (cancelled) cancelNotif(id);
+      else notifId.current = id;
+    });
+    ref.current = setInterval(() => setLeft((l) => (l <= 1 ? 0 : l - 1)), 1000);
+    return () => {
+      cancelled = true;
+      if (ref.current) clearInterval(ref.current);
+      cancelNotif(notifId.current);
+      notifId.current = null;
+    };
   }, [running]);
+
+  // Fire completion once when the countdown reaches zero in the foreground.
+  // Flipping `running` off triggers the tick effect's cleanup (cancels the OS
+  // notification, which we no longer need since the app is visible).
+  useEffect(() => {
+    if (left === 0 && running && !fired.current) {
+      fired.current = true;
+      setRunning(false);
+      onComplete?.();
+    }
+  }, [left, running, onComplete]);
+
   return {
     left, running, done: left === 0,
-    toggle: () => setRunning((r) => !r),
-    reset: () => { setLeft(initial); setRunning(false); },
+    toggle: () => { if (left > 0) setRunning((r) => !r); },
+    reset: () => { setLeft(initial); setRunning(false); fired.current = false; },
   };
 }
 
-function CookTimer({ seconds, t }: { seconds: number; t: Tokens }) {
-  const c = useCountdown(seconds);
+function CookTimer({ seconds, t, body, onDone }: { seconds: number; t: Tokens; body: string; onDone: () => void }) {
+  const c = useCountdown(seconds, onDone, body);
   const pct = 1 - c.left / seconds;
   const R = 20, C = 2 * Math.PI * R;
   return (
@@ -65,7 +90,7 @@ function CookTimer({ seconds, t }: { seconds: number; t: Tokens }) {
 export default function CookMode() {
   useKeepAwake();
   const { t } = useTheme();
-  const { byId, recipes, units } = useApp();
+  const { byId, recipes, units, addReminder } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -97,7 +122,14 @@ export default function CookMode() {
         <Txt style={{ fontSize: 13, fontWeight: '700', color: t.accent, marginBottom: 8, letterSpacing: 1 }}>STEP {i + 1} OF {r.steps.length}</Txt>
         <Txt style={{ fontWeight: '800', fontSize: 26, lineHeight: 31, color: t.text, marginBottom: 14 }}>{step.t}</Txt>
         <Txt style={{ fontSize: 17, lineHeight: 27, color: t.text, marginBottom: 22 }}>{step.d}</Txt>
-        {step.timer ? <CookTimer seconds={step.timer} t={t} /> : null}
+        {step.timer ? (
+          <CookTimer
+            seconds={step.timer}
+            t={t}
+            body={`Your "${r.title}" step timer finished.`}
+            onDone={() => addReminder({ kind: 'cooked', text: `Step timer finished while cooking ${r.title}`, recipe: r.id })}
+          />
+        ) : null}
       </ScrollView>
 
       {/* Bottom controls */}

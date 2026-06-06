@@ -19,7 +19,7 @@ port = 54323
 # them keeps the local stack lean and avoids the storage health-check flake in
 # CI/Codespaces. Re-enable for production or when wiring avatar uploads.
 [storage]
-enabled = false
+enabled = true
 
 [analytics]
 enabled = false

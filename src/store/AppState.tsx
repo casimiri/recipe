@@ -4,9 +4,9 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   listRecipes, addRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
-  DEFAULT_STATE, UserState, ProfileRow, CookLog, UserCookbook,
+  DEFAULT_STATE, UserState, ProfileRow, CookLog, UserCookbook, AppReminder,
 } from '../lib/repo';
-import { RECIPES as SEED_RECIPES, NOTIFICATIONS, PROFILE } from '../data/seed';
+import { RECIPES as SEED_RECIPES, PROFILE } from '../data/seed';
 import { useAuth } from './auth';
 import type { Recipe, WeekPlan, MealSlot, GroceryItem, Profile } from '../data/types';
 
@@ -38,6 +38,11 @@ interface AppCtx {
   createCookbook: (name: string) => string;
   addToCookbook: (cookbookId: string, recipeId: string) => void;
   removeFromCookbook: (cookbookId: string, recipeId: string) => void;
+  recentSearches: string[];
+  addRecentSearch: (q: string) => void;
+  clearRecentSearches: () => void;
+  reminders: AppReminder[];
+  addReminder: (r: Omit<AppReminder, 'id' | 'at'>) => void;
   unread: number;
   markNotificationsRead: () => void;
   profile: Profile;
@@ -51,8 +56,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>(SEED_RECIPES);
   const [state, setState] = useState<UserState>(DEFAULT_STATE);
-  const [unread, setUnread] = useState(NOTIFICATIONS.length);
   const [dbProfile, setDbProfile] = useState<ProfileRow | null>(null);
+
+  // Unread = app-generated reminders newer than the last time the screen was seen.
+  const unread = useMemo(
+    () => state.reminders.filter((n) => n.at > state.notifsSeenAt).length,
+    [state.reminders, state.notifsSeenAt],
+  );
 
   useEffect(() => {
     let active = true;
@@ -158,8 +168,26 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         cookbooks: s.cookbooks.map((c) =>
           c.id === cookbookId ? { ...c, recipeIds: c.recipeIds.filter((x) => x !== recipeId) } : c),
       })),
+    recentSearches: state.recentSearches,
+    // Record a query; dedupe case-insensitively (re-searching moves it to the
+    // front) and cap at the 8 most recent.
+    addRecentSearch: (q) => {
+      const term = q.trim();
+      if (!term) return;
+      setState((s) => ({
+        ...s,
+        recentSearches: [term, ...s.recentSearches.filter((x) => x.toLowerCase() !== term.toLowerCase())].slice(0, 8),
+      }));
+    },
+    clearRecentSearches: () => update({ recentSearches: [] }),
+    reminders: state.reminders,
+    addReminder: (r) =>
+      setState((s) => ({
+        ...s,
+        reminders: [{ ...r, id: 'rem' + Date.now(), at: Date.now() }, ...s.reminders].slice(0, 50),
+      })),
     unread,
-    markNotificationsRead: () => setUnread(0),
+    markNotificationsRead: () => update({ notifsSeenAt: Date.now() }),
     profile,
     updateProfile: async (patch) => {
       setDbProfile((p) => ({

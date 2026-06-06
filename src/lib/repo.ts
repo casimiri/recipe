@@ -21,6 +21,15 @@ export interface UserCookbook {
   recipeIds: string[];
 }
 
+/** An app-generated notification (e.g. a finished cook timer), newest first. */
+export interface AppReminder {
+  id: string;
+  kind: 'cooked' | 'plan';
+  text: string;
+  recipe?: string;
+  at: number;
+}
+
 export interface UserState {
   saved: string[];
   plan: WeekPlan;
@@ -34,6 +43,12 @@ export interface UserState {
   units: 'metric' | 'imperial';
   /** User-created cookbooks. */
   cookbooks: UserCookbook[];
+  /** Recent search queries, most recent first. */
+  recentSearches: string[];
+  /** App-generated notifications (cook-timer reminders etc.), newest first. */
+  reminders: AppReminder[];
+  /** Timestamp the notifications screen was last viewed (drives the unread badge). */
+  notifsSeenAt: number;
 }
 
 export const DEFAULT_STATE: UserState = {
@@ -51,6 +66,9 @@ export const DEFAULT_STATE: UserState = {
   diet: [],
   units: 'metric',
   cookbooks: [],
+  recentSearches: [],
+  reminders: [],
+  notifsSeenAt: 0,
 };
 
 const GUEST = 'guest';
@@ -211,4 +229,26 @@ export async function upsertProfile(userId: string, patch: Partial<ProfileRow>):
     .from('profiles')
     .upsert({ id: userId, ...patch })
     .then(() => {}, () => {});
+}
+
+/**
+ * Upload a base64 avatar to the public `avatars` bucket and return its public
+ * URL, or null if Supabase isn't configured or the upload fails (callers then
+ * keep the device-local URI as a graceful fallback). The path is namespaced
+ * under the user's folder (RLS) and timestamped to bust the CDN cache.
+ */
+export async function uploadAvatar(userId: string, base64: string): Promise<string | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const clean = base64.includes(',') ? base64.split(',')[1] : base64;
+    const bytes = Uint8Array.from(atob(clean), (c) => c.charCodeAt(0));
+    const path = `${userId}/avatar-${Date.now()}.jpg`;
+    const { error } = await supabase.storage
+      .from('avatars')
+      .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
+    if (error) return null;
+    return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl ?? null;
+  } catch {
+    return null;
+  }
 }

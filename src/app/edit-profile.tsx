@@ -5,6 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../theme/ThemeProvider';
 import { useApp } from '../store/AppState';
+import { useAuth } from '../store/auth';
+import { uploadAvatar } from '../lib/repo';
 import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
 import { Avatar, PrimaryButton, IconBtn } from '../components/atoms';
@@ -12,6 +14,7 @@ import { Avatar, PrimaryButton, IconBtn } from '../components/atoms';
 export default function EditProfile() {
   const { t } = useTheme();
   const { profile, updateProfile } = useApp();
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -19,16 +22,29 @@ export default function EditProfile() {
   const [handle, setHandle] = useState(profile.handle);
   const [bio, setBio] = useState(profile.bio);
   const [avatar, setAvatar] = useState(profile.avatar);
+  // base64 of a freshly picked avatar, uploaded to Storage on save so it syncs
+  // across devices; null means the avatar is unchanged (already a remote URL).
+  const [avatarBase64, setAvatarBase64] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const pickAvatar = async () => {
-    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7, allowsEditing: true, aspect: [1, 1] });
-    if (!res.canceled && res.assets[0]?.uri) setAvatar(res.assets[0].uri);
+    const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7, allowsEditing: true, aspect: [1, 1], base64: true });
+    if (!res.canceled && res.assets[0]?.uri) {
+      setAvatar(res.assets[0].uri); // local URI for instant preview
+      setAvatarBase64(res.assets[0].base64 ?? null);
+    }
   };
 
   const save = async () => {
     setBusy(true);
-    await updateProfile({ name: name.trim(), handle: handle.trim(), bio: bio.trim(), avatar });
+    // Upload a newly picked photo to Storage; on failure keep the local URI so
+    // the rest of the profile still saves (it just won't sync across devices).
+    let avatarUrl = avatar;
+    if (avatarBase64 && user?.id) {
+      const uploaded = await uploadAvatar(user.id, avatarBase64);
+      if (uploaded) avatarUrl = uploaded;
+    }
+    await updateProfile({ name: name.trim(), handle: handle.trim(), bio: bio.trim(), avatar: avatarUrl });
     setBusy(false);
     router.back();
   };

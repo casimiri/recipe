@@ -55,9 +55,23 @@ Common operations (read `PAT`/`REF` from `.env.local`; sandbox off):
 - **Set secrets:** `POST /v1/projects/{ref}/secrets` with `[{"name":"OPENAI_API_KEY","value":"…"},{"name":"OPENAI_MODEL","value":"gpt-4o-mini"}]`.
 - **List/inspect:** `GET /v1/projects/{ref}` (status), `…/functions` (deployed), `…/secrets` (names only), `…/api-keys?reveal=true` (anon/publishable/service keys).
 
+Current function secrets: `OPENAI_API_KEY`, `OPENAI_MODEL`, plus `SB_URL` + `SB_SERVICE_ROLE_KEY` (used by `import-recipe` to upload the user's photo to Storage). **Gotcha:** the platform auto-injects `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` into functions and lists them under secrets, but they were NOT actually readable at runtime — so storage access from a function uses the explicit `SB_*` secrets instead. You can't create secrets with the reserved `SUPABASE_` prefix.
+
+## Storage (recipe images)
+
+Photo/screenshot imports upload the photo to a **public bucket `recipe-images`**; the public URL becomes the recipe's hero image. Create the bucket via SQL (Management API query endpoint):
+
+```sql
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('recipe-images','recipe-images', true, 10485760, array['image/jpeg','image/png','image/webp'])
+on conflict (id) do nothing;
+```
+
+Direct upload (service role bypasses RLS): `POST https://{ref}.supabase.co/storage/v1/object/recipe-images/<path>` with `Authorization: Bearer <service_role>`, `Content-Type: image/jpeg`, `x-upsert: true`, body = raw bytes. Public read: `…/storage/v1/object/public/recipe-images/<path>`. Delete: same URL, `DELETE`. `[storage]` is enabled in `config.toml` for local dev.
+
 ## Deploy edge functions
 
-Use the CLI (PAT via env, no DB password). Functions: `import-recipe`, `ai-tools` (both need `OPENAI_API_KEY`). Deployed with `--no-verify-jwt` so guest mode works:
+Use the CLI (PAT via env, no DB password). Functions: `import-recipe` (recipe extraction incl. vision + photo→Storage upload; needs `OPENAI_API_KEY`, `SB_URL`, `SB_SERVICE_ROLE_KEY`) and `ai-tools` (substitutions/simplify; needs `OPENAI_API_KEY`). Deployed with `--no-verify-jwt` so guest mode works:
 
 ```bash
 export SUPABASE_ACCESS_TOKEN=$(grep '^SUPABASE_ACCESS_TOKEN' .env.local | cut -d= -f2)

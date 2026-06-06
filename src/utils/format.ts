@@ -75,3 +75,12 @@ export function mmss(left: number): string {
 export function compact(v: number): string {
   return v >= 1000 ? (v / 1000).toFixed(1) + 'k' : String(v);
 }
+
+/** Short relative time from a past timestamp ("now", "3m", "2h", "5d"). */
+export function timeAgo(at: number): string {
+  const s = Math.max(0, Math.floor((Date.now() - at) / 1000));
+  if (s < 60) return 'now';
+  if (s < 3600) return `${Math.floor(s / 60)}m`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h`;
+  return `${Math.floor(s / 86400)}d`;
+}

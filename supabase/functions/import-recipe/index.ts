@@ -8,8 +8,32 @@ import { corsHeaders, json } from '../_shared/cors.ts';
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const MODEL = Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini';
 
+// Storage access (custom secrets, falling back to the auto-injected platform vars).
+const SUPABASE_URL = Deno.env.get('SB_URL') ?? Deno.env.get('SUPABASE_URL') ?? '';
+const SERVICE_ROLE = Deno.env.get('SB_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const BUCKET = 'recipe-images';
+
 const FALLBACK_IMG =
   'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=900&q=80';
+
+/** Upload a base64 image to Storage (service role) and return {url} or {error}. */
+async function uploadImage(base64: string, id: string): Promise<{ url?: string; error?: string }> {
+  if (!SUPABASE_URL || !SERVICE_ROLE) return { error: `missing env url=${!!SUPABASE_URL} key=${!!SERVICE_ROLE}` };
+  try {
+    const clean = base64.includes(',') ? base64.split(',')[1] : base64;
+    const bytes = Uint8Array.from(atob(clean), (c) => c.charCodeAt(0));
+    const path = `${id}.jpg`;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${SERVICE_ROLE}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
+      body: bytes,
+    });
+    if (!res.ok) return { error: `storage ${res.status}: ${(await res.text()).slice(0, 200)}` };
+    return { url: `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}` };
+  } catch (e) {
+    return { error: `exception: ${String(e).slice(0, 200)}` };
+  }
+}
 
 const SYSTEM = `You are a recipe extraction engine. Given a link, pasted text, or a photo of a
 recipe, return a single JSON object describing the recipe. Infer reasonable values when a field
@@ -102,8 +126,18 @@ Deno.serve(async (req) => {
     const data = await resp.json();
     const parsed = JSON.parse(data.choices[0].message.content);
 
+    const id = `imp-${Date.now()}`;
+
+    // Use the user's own photo as the (most relevant) hero image when provided;
+    // persist it to Storage so it survives across devices. Fall back gracefully.
+    let img: string = parsed.img ?? FALLBACK_IMG;
+    if (body.imageBase64) {
+      const up = await uploadImage(body.imageBase64, id);
+      if (up.url) img = up.url;
+    }
+
     const recipe = {
-      id: `imp-${Date.now()}`,
+      id,
       title: parsed.title ?? 'Imported recipe',
       cuisine: parsed.cuisine ?? 'Imported',
       meal: parsed.meal ?? 'Dinner',
@@ -113,7 +147,7 @@ Deno.serve(async (req) => {
       difficulty: parsed.difficulty ?? 'Easy',
       rating: 0,
       reviews: 0,
-      img: parsed.img ?? FALLBACK_IMG,
+      img,
       source: { kind: body.sourceKind ?? 'url', handle: body.url ?? 'Imported', name: 'Imported' },
       saves: 0,
       cooked: 0,

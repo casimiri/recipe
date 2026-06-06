@@ -10,14 +10,14 @@ planning, shopping for, and cooking recipes.
 
 - **Onboarding** — welcome + 3 value slides + taste preferences
 - **Home** — greeting, search, category pills, recipe grid
-- **Search** — live filtering, trending searches, browse-by-category, filter sheet
+- **Search** — live filtering, trending searches, **recent searches** (per-user, synced), browse-by-category, filter sheet
 - **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, AI tools (**Scale / Substitute / Make easier**), **add to cookbook**, and **share & export** (copy link, native share sheet, print, save as **PDF**)
-- **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction → editable preview → save to a cookbook
-- **Cook mode** — full-screen step-by-step with timers and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
+- **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to a cookbook
+- **Cook mode** — full-screen step-by-step with step **timers** (fire a local **notification** when they finish, so they alert you even if the app is backgrounded) and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
 - **Meal planner** — weekly calendar with breakfast / lunch / dinner slots
 - **Smart grocery list** — grouped by aisle or recipe, progress, order-delivery flow
 - **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes
-- **Cookbooks** — browse, **create your own**, and add/remove recipes; plus **Profile / social** (created / saved / cooked tabs), **Notifications**, **Settings**
+- **Cookbooks** — browse, **create your own**, and add/remove recipes; plus **Profile / social** (created / saved / cooked tabs), **Notifications** (real cook-timer reminders with an unread badge, above the social feed), **Settings**
 - **Units** — switch ingredient quantities between **metric and imperial** in Settings; conversion flows through recipe detail, cook mode, and exports
 - **Export** — save your created + saved recipes as a single PDF from Settings
 - **Light + dark mode** and an **accent-colour picker** in Settings (the canonical "Sunny" visual direction)
@@ -29,7 +29,7 @@ planning, shopping for, and cooking recipes.
 | App | Expo SDK 54, React Native 0.81, expo-router (file-based) |
 | Language | TypeScript |
 | UI | react-native-svg icons, expo-image, expo-linear-gradient, Plus Jakarta Sans |
-| Device | expo-image-picker (camera + library), expo-clipboard, expo-print, expo-sharing |
+| Device | expo-image-picker (camera + library), expo-clipboard, expo-print, expo-sharing, expo-notifications (local cook-timer reminders) |
 | State | React context + AsyncStorage (offline-first) |
 | Backend | Supabase (Postgres + Auth + Edge Functions) |
 | AI | OpenAI, called **server-side** from Supabase Edge Functions |
@@ -50,7 +50,7 @@ src/
   theme/               tokens (Sunny), ThemeProvider (accent + dark, persisted)
   data/                seed content + types
   store/               auth + AppState contexts
-  lib/                 supabase client, repo (data access), ai (edge-function client), share (print/PDF/export HTML)
+  lib/                 supabase client, repo (data access), ai (edge-function client), share (print/PDF/export HTML), notify (local cook-timer notifications)
   utils/               formatting helpers (incl. metric↔imperial unit conversion)
 supabase/
   migrations/0001_init.sql   schema + RLS + profile trigger
@@ -174,16 +174,37 @@ the app bundle.
 supabase secrets set OPENAI_API_KEY=sk-...
 # optional: supabase secrets set OPENAI_MODEL=gpt-4o-mini
 
+# Lets import-recipe persist the user's photo to Storage as the recipe image.
+# (The platform-injected SUPABASE_* vars aren't reliably available at runtime,
+#  so set these explicitly.)
+supabase secrets set SB_URL=https://<ref>.supabase.co
+supabase secrets set SB_SERVICE_ROLE_KEY=<service-role key>
+
 supabase functions deploy import-recipe
 supabase functions deploy ai-tools
 ```
 
 - **`import-recipe`** — given a link / pasted text / photo, fetches the page (for
-  URLs) or uses vision (for photos) and returns a structured recipe.
+  URLs) or uses **vision** (for photos) and returns a structured recipe. For
+  photo/screenshot imports it also uploads the photo to the `recipe-images`
+  Storage bucket and uses that as the recipe's hero image (so the imported
+  recipe shows a relevant picture, not a stock one).
 - **`ai-tools`** — returns ingredient substitutions or simplified step text.
 
 The app calls these via `supabase.functions.invoke(...)` in `src/lib/ai.ts`, and
 gracefully falls back to local results if they're unavailable.
+
+The photo import needs a **public Storage bucket** named `recipe-images`. Create
+it in the dashboard (Storage → New bucket → public), or via SQL:
+
+```sql
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('recipe-images', 'recipe-images', true, 10485760,
+        array['image/jpeg','image/png','image/webp'])
+on conflict (id) do nothing;
+```
+
+(`[storage]` is enabled in `config.toml` for local dev too.)
 
 ## Data model
 
@@ -192,7 +213,14 @@ gracefully falls back to local results if they're unavailable.
 - **`profiles`** — auto-created on sign-up via a trigger.
 - **`user_state`** — per-user JSON blob (saved recipes, meal plan, grocery
   checks/extras, tastes, cooked history with ratings, dietary preferences,
-  unit system, and user-created cookbooks), RLS-scoped to the owner.
+  unit system, user-created cookbooks, recent searches, and app-generated
+  reminders + a last-seen timestamp for the notifications badge), RLS-scoped to
+  the owner.
+- **Storage `recipe-images`** — public bucket holding photos captured during
+  import; the uploaded photo becomes the imported recipe's hero image.
+- **Storage `avatars`** — public bucket holding profile photos, namespaced per
+  user (`<uid>/…`, RLS write-scoped to the owner); the public URL is stored on
+  `profiles.avatar` so it renders and syncs across devices.
 
 ### Auth & sync behaviour
 
@@ -203,9 +231,17 @@ gracefully falls back to local results if they're unavailable.
   recipes, plan, tastes) is pushed up the first time you log in to an empty
   account.
 - **Tokens** auto-refresh only while the app is foregrounded (RN best practice).
-- *Known limitation:* avatars from the image picker are stored as a device-local
-  URI, so they don't sync across devices yet — wiring uploads to Supabase Storage
-  (currently disabled locally) is the follow-up.
+- **Avatars sync:** a profile photo picked from the library is uploaded to the
+  public `avatars` Storage bucket on save, and its public URL is stored on
+  `profiles.avatar` — so it renders across devices. If the upload fails (or in
+  guest mode) the app keeps the device-local URI so the rest of the profile
+  still saves.
+- **Cook-timer notifications:** step timers schedule a **local** notification
+  (`src/lib/notify.ts`) that fires at the end even when the app is backgrounded,
+  and log an in-app reminder shown on the Notifications screen. *Known
+  limitation:* local notifications were removed from **Expo Go on Android**
+  (SDK 53+), so the OS alert no-ops there (the in-app timer + reminder still
+  work) — use a dev/standalone build or Expo Go on iOS to see it fire.
 
 ## Design notes
 

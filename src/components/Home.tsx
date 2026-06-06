@@ -6,10 +6,10 @@ import type { Tokens } from '../theme/tokens';
 import { CATEGORIES } from '../data/seed';
 
 export function SearchBar({
-  t, onPress, placeholder = 'Search any recipe', onFilter, value, onChange, autoFocus,
+  t, onPress, placeholder = 'Search any recipe', onFilter, value, onChange, autoFocus, onSubmit,
 }: {
   t: Tokens; onPress?: () => void; placeholder?: string; onFilter?: () => void;
-  value?: string; onChange?: (v: string) => void; autoFocus?: boolean;
+  value?: string; onChange?: (v: string) => void; autoFocus?: boolean; onSubmit?: () => void;
 }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -24,6 +24,8 @@ export function SearchBar({
             autoFocus={autoFocus}
             value={value}
             onChangeText={onChange}
+            onSubmitEditing={onSubmit}
+            returnKeyType="search"
             placeholder={placeholder}
             placeholderTextColor={t.faint}
             style={{ flex: 1, fontSize: 14.5, color: t.text, fontFamily: t.body, paddingVertical: 4 }}

@@ -15,7 +15,7 @@ const TRENDING = ['Crepes', 'Chicken curry', 'Overnight oats', 'Matcha', 'Tacos'
 
 export default function Search() {
   const { t } = useTheme();
-  const { recipes, isSaved, toggleSave, diet } = useApp();
+  const { recipes, isSaved, toggleSave, diet, recentSearches, addRecentSearch, clearRecentSearches } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ filter?: string; cat?: string }>();
@@ -43,7 +43,7 @@ export default function Search() {
           <Icon.back size={26} sw={2.2} color={t.text} />
         </Pressable>
         <View style={{ flex: 1 }}>
-          <SearchBar t={t} value={q} onChange={setQ} autoFocus onFilter={() => setShowFilter((s) => !s)} />
+          <SearchBar t={t} value={q} onChange={setQ} autoFocus onSubmit={() => addRecentSearch(q)} onFilter={() => setShowFilter((s) => !s)} />
         </View>
       </View>
 
@@ -56,6 +56,14 @@ export default function Search() {
 
         {empty ? (
           <View>
+            {recentSearches.length > 0 ? (
+              <>
+                <SectionHead title="Recent" action="Clear" onAction={clearRecentSearches} t={t} style={{ marginBottom: 12 }} />
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 26 }}>
+                  {recentSearches.map((rs) => <Tag key={rs} t={t} onPress={() => setQ(rs)}>{rs}</Tag>)}
+                </View>
+              </>
+            ) : null}
             <SectionHead title="Trending searches" t={t} style={{ marginBottom: 12 }} />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 26 }}>
               {TRENDING.map((tr) => <Tag key={tr} t={t} onPress={() => setQ(tr)}>{tr}</Tag>)}
@@ -83,7 +91,7 @@ export default function Search() {
             <Txt style={{ fontSize: 13, color: t.muted, marginBottom: 14, fontWeight: '600' }}>{results.length} recipes</Txt>
             <View style={{ gap: 6 }}>
               {results.map((r) => (
-                <RecipeCard key={r.id} recipe={r} t={t} variant="compact" onOpen={(id) => router.push(`/recipe/${id}`)} onSave={toggleSave} saved={isSaved(r.id)} />
+                <RecipeCard key={r.id} recipe={r} t={t} variant="compact" onOpen={(id) => { if (q.trim()) addRecentSearch(q); router.push(`/recipe/${id}`); }} onSave={toggleSave} saved={isSaved(r.id)} />
               ))}
               {results.length === 0 ? <Txt style={{ textAlign: 'center', color: t.muted, paddingVertical: 40 }}>No recipes match those filters.</Txt> : null}
             </View>
