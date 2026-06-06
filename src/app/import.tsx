@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../theme/ThemeProvider';
+import { useI18n, type Tr } from '../i18n';
 import { useApp } from '../store/AppState';
 import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
@@ -29,9 +30,21 @@ type Stage = 'pick' | 'extract' | 'preview';
 
 export default function ImportScreen() {
   const { t } = useTheme();
+  const { tr } = useI18n();
   const { saveRecipe, cookbooks, addToCookbook } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  // Brand source names (Instagram/TikTok/YouTube) stay as-is; generic ones localize.
+  const srcLabel = (s: typeof SOURCES[number]) =>
+    s.kind === 'url' ? tr((x) => x.import.website)
+    : s.kind === 'camera' ? tr((x) => x.import.photo)
+    : s.kind === 'manual' ? tr((x) => x.import.writeYourOwn)
+    : s.label;
+  const srcSample = (s: typeof SOURCES[number]) =>
+    s.kind === 'camera' ? tr((x) => x.import.scanPage)
+    : s.kind === 'manual' ? tr((x) => x.import.fromScratch)
+    : s.sample;
 
   const [stage, setStage] = useState<Stage>('pick');
   const [src, setSrc] = useState(SOURCES[0]);
@@ -55,7 +68,7 @@ export default function ImportScreen() {
       if (!res.canceled && res.assets[0]?.base64) imageBase64 = res.assets[0].base64;
     }
     const r = await importRecipe({ url: url ?? (link || s.sample), sourceKind: s.kind, imageBase64 });
-    setRecipe({ ...r, source: { kind: s.kind, handle: url || link || s.sample, name: s.label } });
+    setRecipe({ ...r, source: { kind: s.kind, handle: url || link || s.sample, name: srcLabel(s) } });
   };
 
   // Move to preview once both the animation and the fetch have completed.
@@ -64,7 +77,7 @@ export default function ImportScreen() {
   }, [stage, animDone, recipe]);
 
   if (stage === 'extract') {
-    return <Extracting t={t} src={src} onDone={() => setAnimDone(true)} onCancel={() => setStage('pick')} insetsTop={insets.top} />;
+    return <Extracting t={t} tr={tr} src={src} srcLabel={srcLabel(src)} onDone={() => setAnimDone(true)} onCancel={() => setStage('pick')} insetsTop={insets.top} />;
   }
 
   if (stage === 'preview' && recipe) {
@@ -72,16 +85,16 @@ export default function ImportScreen() {
     return (
       <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: insets.bottom + 30 }}>
-        <ScreenHeader title="Review recipe" onBack={() => setStage('pick')} />
+        <ScreenHeader title={tr((s) => s.import.reviewRecipe)} onBack={() => setStage('pick')} />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: t.accentSofter, paddingVertical: 11, paddingHorizontal: 14, borderRadius: t.radiusSm, marginBottom: 20 }}>
           <Icon.sparkle size={17} color={t.accent} />
-          <Txt style={{ color: t.accent, fontSize: 13, fontWeight: '700', flex: 1 }}>Recipe extracted — tap any field to edit before saving.</Txt>
+          <Txt style={{ color: t.accent, fontSize: 13, fontWeight: '700', flex: 1 }}>{tr((s) => s.import.extractedBanner)}</Txt>
         </View>
 
         <Dish src={r.img} alt={r.title} radius={t.radius} style={{ width: '100%', height: 170, marginBottom: 16 }}>
           <View style={{ position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.92)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999 }}>
             <Icon.camera size={15} sw={2} color="#222" />
-            <Txt style={{ color: '#222', fontSize: 12.5, fontWeight: '700' }}>Change</Txt>
+            <Txt style={{ color: '#222', fontSize: 12.5, fontWeight: '700' }}>{tr((s) => s.import.change)}</Txt>
           </View>
         </Dish>
 
@@ -92,7 +105,7 @@ export default function ImportScreen() {
           <MiniField t={t} icon={<Icon.layers size={15} sw={2} color={t.accent} />} value={r.difficulty} />
         </View>
 
-        <SectionHead title={`Ingredients · ${r.ingredients.length}`} t={t} style={{ marginBottom: 10 }} />
+        <SectionHead title={tr((s) => s.import.ingredientsCount, { count: r.ingredients.length })} t={t} style={{ marginBottom: 10 }} />
         <View style={{ backgroundColor: t.surface2, borderRadius: t.radius, paddingHorizontal: 16, paddingVertical: 6, marginBottom: 22 }}>
           {r.ingredients.map((ing, k) => (
             <View key={k} style={{ flexDirection: 'row', gap: 8, paddingVertical: 9, borderBottomWidth: k < r.ingredients.length - 1 ? 1 : 0, borderBottomColor: t.border }}>
@@ -102,7 +115,7 @@ export default function ImportScreen() {
           ))}
         </View>
 
-        <SectionHead title={`Steps · ${r.steps.length}`} t={t} style={{ marginBottom: 10 }} />
+        <SectionHead title={tr((s) => s.import.stepsCount, { count: r.steps.length })} t={t} style={{ marginBottom: 10 }} />
         <View style={{ gap: 10, marginBottom: 24 }}>
           {r.steps.map((s, k) => (
             <View key={k} style={{ flexDirection: 'row', gap: 11 }}>
@@ -114,7 +127,7 @@ export default function ImportScreen() {
           ))}
         </View>
 
-        <Txt style={{ fontSize: 13, fontWeight: '700', color: t.muted, marginBottom: 10 }}>Save to cookbook</Txt>
+        <Txt style={{ fontSize: 13, fontWeight: '700', color: t.muted, marginBottom: 10 }}>{tr((s) => s.import.saveToCookbook)}</Txt>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 9, paddingBottom: 4 }} style={{ marginBottom: 24 }}>
           {[...cookbooks, ...COOKBOOKS].map((c) => <Tag key={c.id} t={t} active={cookbook === c.id} onPress={() => setCookbook(c.id)}>{c.name}</Tag>)}
         </ScrollView>
@@ -125,7 +138,7 @@ export default function ImportScreen() {
             if (cookbooks.some((c) => c.id === cookbook)) addToCookbook(cookbook, r.id);
             router.replace(`/recipe/${r.id}`);
           }}>
-          Save recipe
+          {tr((s) => s.import.saveRecipe)}
         </PrimaryButton>
       </ScrollView>
     );
@@ -136,28 +149,28 @@ export default function ImportScreen() {
     <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: insets.bottom + 30 }} keyboardShouldPersistTaps="handled">
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text }}>Add a recipe</Txt>
+        <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text }}>{tr((s) => s.import.addRecipe)}</Txt>
         <IconBtn t={t} onPress={() => router.back()}><Icon.x size={20} sw={2.4} color={t.text} /></IconBtn>
       </View>
       <Txt style={{ fontSize: 14.5, color: t.muted, lineHeight: 22, marginBottom: 22 }}>
-        Paste a link from anywhere and we’ll pull out the ingredients and steps automatically.
+        {tr((s) => s.import.subtitle)}
       </Txt>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: t.surface2, borderRadius: 16, paddingLeft: 16, paddingRight: 6, paddingVertical: 6, marginBottom: 12, borderWidth: 1, borderColor: t.border }}>
         <Icon.link size={19} sw={2} color={t.faint} />
-        <TextInput value={link} onChangeText={setLink} placeholder="Paste recipe link…" placeholderTextColor={t.faint}
+        <TextInput value={link} onChangeText={setLink} placeholder={tr((s) => s.import.linkPlaceholder)} placeholderTextColor={t.faint}
           autoCapitalize="none" style={{ flex: 1, fontSize: 14.5, color: t.text, fontFamily: t.body, paddingVertical: 8 }} />
         <PrimaryButton t={t} disabled={!link} style={{ paddingHorizontal: 18, paddingVertical: 11 }}
           onPress={() => begin(SOURCES.find((s) => link.includes(s.kind)) || SOURCES[3], link)}>
-          Import
+          {tr((s) => s.import.importBtn)}
         </PrimaryButton>
       </View>
       <Pressable onPress={() => begin(SOURCES[0])} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 26 }}>
         <Icon.sparkle size={15} color={t.accent} />
-        <Txt style={{ color: t.accent, fontWeight: '700', fontSize: 13 }}>Try it with a sample reel</Txt>
+        <Txt style={{ color: t.accent, fontWeight: '700', fontSize: 13 }}>{tr((s) => s.import.sampleReel)}</Txt>
       </Pressable>
 
-      <Txt style={{ fontSize: 13, fontWeight: '700', color: t.muted, marginBottom: 14 }}>Or import from</Txt>
+      <Txt style={{ fontSize: 13, fontWeight: '700', color: t.muted, marginBottom: 14 }}>{tr((s) => s.import.orImportFrom)}</Txt>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
         {SOURCES.map((s) => {
           const I = Icon[s.icon];
@@ -169,8 +182,8 @@ export default function ImportScreen() {
               <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: withA(s.color, 0.14), alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
                 <I size={22} sw={2} color={s.color} />
               </View>
-              <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text, marginBottom: 3 }}>{s.label}</Txt>
-              <Txt style={{ fontSize: 11.5, color: t.faint }} numberOfLines={1}>{s.sample}</Txt>
+              <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text, marginBottom: 3 }}>{srcLabel(s)}</Txt>
+              <Txt style={{ fontSize: 11.5, color: t.faint }} numberOfLines={1}>{srcSample(s)}</Txt>
             </Pressable>
           );
         })}
@@ -179,8 +192,14 @@ export default function ImportScreen() {
   );
 }
 
-function Extracting({ t, src, onDone, onCancel, insetsTop }: { t: Tokens; src: typeof SOURCES[number]; onDone: () => void; onCancel: () => void; insetsTop: number }) {
-  const tasks = [`Opening the ${src.label.toLowerCase()} post`, 'Reading captions & audio', 'Detecting ingredients', 'Parsing the steps', 'Estimating nutrition'];
+function Extracting({ t, tr, src, srcLabel, onDone, onCancel, insetsTop }: { t: Tokens; tr: Tr; src: typeof SOURCES[number]; srcLabel: string; onDone: () => void; onCancel: () => void; insetsTop: number }) {
+  const tasks = [
+    tr((s) => s.import.taskOpening, { source: srcLabel }),
+    tr((s) => s.import.taskReading),
+    tr((s) => s.import.taskDetecting),
+    tr((s) => s.import.taskParsing),
+    tr((s) => s.import.taskNutrition),
+  ];
   const [step, setStep] = useState(0);
   const spin = useRef(new Animated.Value(0)).current;
   const I = Icon[src.icon];
@@ -207,8 +226,8 @@ function Extracting({ t, src, onDone, onCancel, insetsTop }: { t: Tokens; src: t
           <I size={34} sw={2} color={src.color} />
         </View>
       </View>
-      <Txt style={{ textAlign: 'center', fontWeight: '800', fontSize: 22, color: t.text, marginBottom: 6 }}>Importing recipe…</Txt>
-      <Txt style={{ textAlign: 'center', fontSize: 13.5, color: t.muted, marginBottom: 30 }}>This usually takes a few seconds</Txt>
+      <Txt style={{ textAlign: 'center', fontWeight: '800', fontSize: 22, color: t.text, marginBottom: 6 }}>{tr((s) => s.import.importingRecipe)}</Txt>
+      <Txt style={{ textAlign: 'center', fontSize: 13.5, color: t.muted, marginBottom: 30 }}>{tr((s) => s.import.takesSeconds)}</Txt>
       <View style={{ gap: 4, maxWidth: 280, alignSelf: 'center', width: '100%' }}>
         {tasks.map((task, i) => {
           const done = i < step, active = i === step;
@@ -223,7 +242,7 @@ function Extracting({ t, src, onDone, onCancel, insetsTop }: { t: Tokens; src: t
         })}
       </View>
       <Pressable onPress={onCancel} style={{ marginTop: 30, alignItems: 'center' }}>
-        <Txt style={{ color: t.muted, fontSize: 13.5, fontWeight: '600' }}>Cancel</Txt>
+        <Txt style={{ color: t.muted, fontSize: 13.5, fontWeight: '600' }}>{tr((s) => s.common.cancel)}</Txt>
       </Pressable>
     </View>
   );

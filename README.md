@@ -18,6 +18,7 @@ planning, shopping for, and cooking recipes.
 - **Smart grocery list** — grouped by aisle or recipe, progress, order-delivery flow
 - **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes
 - **Cookbooks** — browse, **create your own**, and add/remove recipes; plus **Profile / social** (created / saved / cooked tabs), **Notifications** (real cook-timer reminders with an unread badge, above the social feed), **Settings**
+- **Languages** — **English, French, Spanish, German**; defaults to the device language and switchable in Settings. Translates the whole UI plus the seed recipe catalog's titles/descriptions (imported recipes stay in their original language)
 - **Units** — switch ingredient quantities between **metric and imperial** in Settings; conversion flows through recipe detail, cook mode, and exports
 - **Export** — save your created + saved recipes as a single PDF from Settings
 - **Light + dark mode** and an **accent-colour picker** in Settings (the canonical "Sunny" visual direction)
@@ -31,6 +32,7 @@ planning, shopping for, and cooking recipes.
 | UI | react-native-svg icons, expo-image, expo-linear-gradient, Plus Jakarta Sans |
 | Device | expo-image-picker (camera + library), expo-clipboard, expo-print, expo-sharing, expo-notifications (local cook-timer reminders) |
 | State | React context + AsyncStorage (offline-first) |
+| i18n | expo-localization (device locale) + a typed `tr()` selector, 4 languages |
 | Backend | Supabase (Postgres + Auth + Edge Functions) |
 | AI | OpenAI, called **server-side** from Supabase Edge Functions |
 | Quality | TypeScript (`tsc --noEmit`), ESLint (`eslint-config-expo`) |
@@ -51,6 +53,7 @@ src/
   data/                seed content + types
   store/               auth + AppState contexts
   lib/                 supabase client, repo (data access), ai (edge-function client), share (print/PDF/export HTML), notify (local cook-timer notifications)
+  i18n/                I18nProvider + tr() selector, ui/{en,fr,es,de} dictionaries, enums + recipe content localization
   utils/               formatting helpers (incl. metric↔imperial unit conversion)
 supabase/
   migrations/0001_init.sql   schema + RLS + profile trigger
@@ -251,3 +254,10 @@ on conflict (id) do nothing;
   accent-colour and dark-mode choices exposed in **Settings**.
 - Food images load from the Unsplash CDN with a graceful gradient fallback
   (`<Dish/>`), matching the prototype.
+- **i18n** mirrors the theme: `I18nProvider` defaults to the device locale, persists
+  the choice to AsyncStorage, and reloads it on launch. Translation uses a type-safe
+  selector — `tr((s) => s.settings.title)` — and every language implements the full
+  `UIStrings` shape, so a missing key is a compile error. Recipe enum fields
+  (cuisine/meal/difficulty/tags) stay English in the data for filtering and are
+  localized at display time via `trEnum()`; free-text recipe fields are overlaid by
+  `localizeRecipe()` in `AppState`, so they translate app-wide.

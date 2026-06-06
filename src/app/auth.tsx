@@ -3,6 +3,7 @@ import { View, TextInput, Pressable, KeyboardAvoidingView, Platform, ActivityInd
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n';
 import { useAuth } from '../store/auth';
 import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
@@ -10,6 +11,7 @@ import { PrimaryButton } from '../components/atoms';
 
 export default function Auth() {
   const { t } = useTheme();
+  const { tr } = useI18n();
   const { signIn, signUp } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -43,29 +45,29 @@ export default function Auth() {
           <Txt style={{ fontWeight: '800', fontSize: 26, color: t.text }}>Recipe-Snap</Txt>
         </View>
         <Txt style={{ fontWeight: '800', fontSize: 24, color: t.text, marginBottom: 6 }}>
-          {mode === 'in' ? 'Welcome back' : 'Create your account'}
+          {mode === 'in' ? tr((s) => s.auth.welcomeBack) : tr((s) => s.auth.createAccountTitle)}
         </Txt>
         <Txt style={{ fontSize: 14.5, color: t.muted, marginBottom: 24 }}>
-          {mode === 'in' ? 'Sign in to sync your recipes everywhere.' : 'Start saving recipes from anywhere.'}
+          {mode === 'in' ? tr((s) => s.auth.signInSubtitle) : tr((s) => s.auth.signUpSubtitle)}
         </Txt>
 
         <View style={{ gap: 12, marginBottom: 8 }}>
-          <TextInput value={email} onChangeText={setEmail} placeholder="Email" placeholderTextColor={t.faint}
+          <TextInput value={email} onChangeText={setEmail} placeholder={tr((s) => s.auth.email)} placeholderTextColor={t.faint}
             autoCapitalize="none" keyboardType="email-address" autoComplete="email" style={inputStyle} />
-          <TextInput value={password} onChangeText={setPassword} placeholder="Password" placeholderTextColor={t.faint}
+          <TextInput value={password} onChangeText={setPassword} placeholder={tr((s) => s.auth.password)} placeholderTextColor={t.faint}
             secureTextEntry autoCapitalize="none" style={inputStyle} />
         </View>
 
         {error ? <Txt style={{ color: t.danger, fontSize: 13, marginBottom: 8, marginTop: 4 }}>{error}</Txt> : null}
 
         <PrimaryButton t={t} full onPress={submit} disabled={busy || !email || !password} style={{ marginTop: 16, paddingVertical: 16 }}>
-          {busy ? 'Please wait…' : mode === 'in' ? 'Sign in' : 'Sign up'}
+          {busy ? tr((s) => s.auth.pleaseWait) : mode === 'in' ? tr((s) => s.auth.signIn) : tr((s) => s.auth.signUp)}
         </PrimaryButton>
 
         <Pressable onPress={() => { setMode(mode === 'in' ? 'up' : 'in'); setError(null); }} style={{ alignItems: 'center', marginTop: 18 }}>
           <Txt style={{ color: t.muted, fontSize: 14 }}>
-            {mode === 'in' ? "Don't have an account? " : 'Already have an account? '}
-            <Txt style={{ color: t.accent, fontWeight: '700' }}>{mode === 'in' ? 'Sign up' : 'Sign in'}</Txt>
+            {mode === 'in' ? tr((s) => s.auth.noAccountInline) : tr((s) => s.auth.haveAccountInline)}
+            <Txt style={{ color: t.accent, fontWeight: '700' }}>{mode === 'in' ? tr((s) => s.auth.signUp) : tr((s) => s.auth.signIn)}</Txt>
           </Txt>
         </Pressable>
       </View>

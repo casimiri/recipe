@@ -263,8 +263,8 @@ export default function RecipeDetail() {
               <Icon.calendar size={20} sw={2} color={t.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text }}>Add to meal plan</Txt>
-              <Txt style={{ fontSize: 12.5, color: t.muted }}>Schedule this for a day & meal</Txt>
+              <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text }}>{tr((s) => s.recipe.addToMealPlan)}</Txt>
+              <Txt style={{ fontSize: 12.5, color: t.muted }}>{tr((s) => s.recipe.scheduleSub)}</Txt>
             </View>
             <Icon.chevR size={20} sw={2} color={t.faint} />
           </Pressable>
@@ -275,8 +275,8 @@ export default function RecipeDetail() {
               <Icon.book size={20} sw={2} color={t.accent} />
             </View>
             <View style={{ flex: 1 }}>
-              <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text }}>Add to cookbook</Txt>
-              <Txt style={{ fontSize: 12.5, color: t.muted }}>Organize into a collection</Txt>
+              <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text }}>{tr((s) => s.recipe.addToCookbook)}</Txt>
+              <Txt style={{ fontSize: 12.5, color: t.muted }}>{tr((s) => s.recipe.organizeSub)}</Txt>
             </View>
             <Icon.chevR size={20} sw={2} color={t.faint} />
           </Pressable>
@@ -293,10 +293,10 @@ export default function RecipeDetail() {
       </View>
 
       {/* Substitute sheet */}
-      <Sheet open={sheet === 'sub'} onClose={() => { setSheet(null); setSubItem(null); }} t={t} title={subItem ? `Swap ${subItem.item}` : 'Smart substitutions'}>
+      <Sheet open={sheet === 'sub'} onClose={() => { setSheet(null); setSubItem(null); }} t={t} title={subItem ? tr((s) => s.recipe.swap, { item: subItem.item }) : tr((s) => s.recipe.smartSubs)}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}>
           <Icon.sparkle size={16} color={t.accent} />
-          <Txt style={{ color: t.accent, fontSize: 13, fontWeight: '700' }}>AI suggestions</Txt>
+          <Txt style={{ color: t.accent, fontSize: 13, fontWeight: '700' }}>{tr((s) => s.recipe.aiSuggestions)}</Txt>
         </View>
         {subLoading ? (
           <View style={{ paddingVertical: 30, alignItems: 'center' }}><ActivityIndicator color={t.accent} /></View>
@@ -313,52 +313,52 @@ export default function RecipeDetail() {
       </Sheet>
 
       {/* Scale sheet */}
-      <Sheet open={sheet === 'scale'} onClose={() => setSheet(null)} t={t} title="Scale recipe">
+      <Sheet open={sheet === 'scale'} onClose={() => setSheet(null)} t={t} title={tr((s) => s.recipe.scaleRecipe)}>
         <View style={{ alignItems: 'center', paddingTop: 6, paddingBottom: 20 }}>
-          <Txt style={{ fontSize: 13, color: t.muted, marginBottom: 16, textAlign: 'center' }}>Adjust servings — ingredients update automatically</Txt>
+          <Txt style={{ fontSize: 13, color: t.muted, marginBottom: 16, textAlign: 'center' }}>{tr((s) => s.recipe.adjustServings)}</Txt>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 22 }}>
             <StepBtn t={t} big onPress={() => setServings((s) => Math.max(1, s - 1))}><Icon.minus size={22} sw={2.5} color={t.text} /></StepBtn>
             <Txt style={{ fontSize: 48, fontWeight: '800', color: t.text, minWidth: 80, textAlign: 'center' }}>{servings}</Txt>
             <StepBtn t={t} big accent onPress={() => setServings((s) => s + 1)}><Icon.plus size={22} sw={2.5} color={t.accentText} /></StepBtn>
           </View>
           <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'center', marginTop: 22 }}>
-            {[2, 4, 6, 8].map((n) => <Tag key={n} t={t} active={servings === n} onPress={() => setServings(n)}>{`${n} servings`}</Tag>)}
+            {[2, 4, 6, 8].map((n) => <Tag key={n} t={t} active={servings === n} onPress={() => setServings(n)}>{tr((s) => s.recipe.servingsN, { count: n })}</Tag>)}
           </View>
         </View>
-        <PrimaryButton t={t} full onPress={() => setSheet(null)}>Done</PrimaryButton>
+        <PrimaryButton t={t} full onPress={() => setSheet(null)}>{tr((s) => s.common.done)}</PrimaryButton>
       </Sheet>
 
       {/* Plan sheet */}
-      <Sheet open={sheet === 'plan'} onClose={() => setSheet(null)} t={t} title="Add to meal plan">
+      <Sheet open={sheet === 'plan'} onClose={() => setSheet(null)} t={t} title={tr((s) => s.recipe.addToMealPlan)}>
         <PlanPicker t={t} onPick={(day, meal) => { addToPlan(day, meal, r.id); setSheet('planned'); }} />
       </Sheet>
 
       {/* Confirms */}
       <ConfirmSheet open={sheet === 'added'} onClose={() => setSheet(null)} t={t} icon={<Icon.cart size={26} sw={2} color={t.accent} />}
-        title="Added to grocery list" body={`${r.ingredients.length} ingredients from ${r.title} added.`}
-        cta="View list" onCta={() => router.push('/(tabs)/grocery')} />
+        title={tr((s) => s.recipe.addedToList)} body={tr((s) => s.recipe.ingredientsAdded, { count: r.ingredients.length, title: r.title })}
+        cta={tr((s) => s.recipe.viewList)} onCta={() => router.push('/(tabs)/grocery')} />
       <ConfirmSheet open={sheet === 'planned'} onClose={() => setSheet(null)} t={t} icon={<Icon.calendar size={26} sw={2} color={t.accent} />}
-        title="Added to your plan" body={`${r.title} is on the calendar.`} cta="Open meal plan" onCta={() => router.push('/(tabs)/planner')} />
+        title={tr((s) => s.recipe.addedToPlan)} body={tr((s) => s.recipe.addedToPlanBody, { title: r.title })} cta={tr((s) => s.recipe.openPlan)} onCta={() => router.push('/(tabs)/planner')} />
 
       {/* Share */}
-      <Sheet open={sheet === 'share'} onClose={() => { setSheet(null); setCopied(false); }} t={t} title="Share recipe">
+      <Sheet open={sheet === 'share'} onClose={() => { setSheet(null); setCopied(false); }} t={t} title={tr((s) => s.recipe.shareRecipe)}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <Dish src={r.img} alt="" radius={12} style={{ width: 54, height: 54 }} />
           <View>
             <Txt style={{ fontWeight: '700', color: t.text, fontSize: 15 }}>{r.title}</Txt>
             <Txt style={{ fontSize: 12.5, color: copied ? t.accent : t.muted, fontWeight: copied ? '700' : '400' }}>
-              {copied ? 'Link copied!' : `recipe-snap.app/r/${r.id}`}
+              {copied ? tr((s) => s.recipe.linkCopied) : `recipe-snap.app/r/${r.id}`}
             </Txt>
           </View>
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
           {[
-            { icon: <Icon.link size={22} sw={2} color={t.text} />, label: 'Copy link' },
-            { icon: <Icon.instagram size={22} sw={2} color={t.text} />, label: 'Stories' },
-            { icon: <Icon.printer size={22} sw={2} color={t.text} />, label: 'Print' },
-            { icon: <Icon.download size={22} sw={2} color={t.text} />, label: 'Save PDF' },
+            { icon: <Icon.link size={22} sw={2} color={t.text} />, key: 'Copy link', label: tr((s) => s.recipe.copyLink) },
+            { icon: <Icon.instagram size={22} sw={2} color={t.text} />, key: 'Stories', label: tr((s) => s.recipe.stories) },
+            { icon: <Icon.printer size={22} sw={2} color={t.text} />, key: 'Print', label: tr((s) => s.recipe.print) },
+            { icon: <Icon.download size={22} sw={2} color={t.text} />, key: 'Save PDF', label: tr((s) => s.recipe.savePdf) },
           ].map((o) => (
-            <Pressable key={o.label} onPress={() => onShare(o.label)} style={{ alignItems: 'center', gap: 8, flex: 1 }}>
+            <Pressable key={o.key} onPress={() => onShare(o.key)} style={{ alignItems: 'center', gap: 8, flex: 1 }}>
               <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: t.surface2, alignItems: 'center', justifyContent: 'center' }}>{o.icon}</View>
               <Txt style={{ fontSize: 12, color: t.muted, fontWeight: '600' }}>{o.label}</Txt>
             </Pressable>
@@ -367,9 +367,9 @@ export default function RecipeDetail() {
       </Sheet>
 
       {/* Add to cookbook */}
-      <Sheet open={sheet === 'cookbook'} onClose={() => { setSheet(null); setNewCb(''); }} t={t} title="Add to cookbook">
+      <Sheet open={sheet === 'cookbook'} onClose={() => { setSheet(null); setNewCb(''); }} t={t} title={tr((s) => s.recipe.addToCookbook)}>
         {cookbooks.length === 0 ? (
-          <Txt style={{ fontSize: 13.5, color: t.muted, marginBottom: 16 }}>No cookbooks yet — create one below.</Txt>
+          <Txt style={{ fontSize: 13.5, color: t.muted, marginBottom: 16 }}>{tr((s) => s.recipe.noCookbooks)}</Txt>
         ) : (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
             {cookbooks.map((c) => {
@@ -383,17 +383,17 @@ export default function RecipeDetail() {
           </View>
         )}
         <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-          <TextInput value={newCb} onChangeText={setNewCb} placeholder="New cookbook" placeholderTextColor={t.faint}
+          <TextInput value={newCb} onChangeText={setNewCb} placeholder={tr((s) => s.recipe.newCookbook)} placeholderTextColor={t.faint}
             style={{ flex: 1, backgroundColor: t.surface2, borderRadius: t.radiusSm, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: t.text, fontFamily: t.body }} />
           <PrimaryButton t={t} disabled={!newCb.trim()} style={{ paddingHorizontal: 18, paddingVertical: 12 }}
             onPress={() => { const id = createCookbook(newCb); addToCookbook(id, r.id); setNewCb(''); setSheet('addedCb'); }}>
-            Create
+            {tr((s) => s.recipe.create)}
           </PrimaryButton>
         </View>
       </Sheet>
       <ConfirmSheet open={sheet === 'addedCb'} onClose={() => setSheet(null)} t={t} icon={<Icon.book size={26} sw={2} color={t.accent} />}
-        title="Added to cookbook" body={`${r.title} saved to your cookbook.`}
-        cta="View cookbooks" onCta={() => router.push('/(tabs)/cookbooks')} />
+        title={tr((s) => s.recipe.addedToCookbook)} body={tr((s) => s.recipe.savedToCookbookBody, { title: r.title })}
+        cta={tr((s) => s.recipe.viewCookbooks)} onCta={() => router.push('/(tabs)/cookbooks')} />
     </View>
   );
 }

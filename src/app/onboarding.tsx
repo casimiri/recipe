@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n';
 import { useAuth } from '../store/auth';
 import { useApp } from '../store/AppState';
 import { Txt } from '../components/Txt';
@@ -14,8 +15,14 @@ import { ONBOARDED_KEY } from './index';
 
 export default function Onboarding() {
   const { t } = useTheme();
+  const { tr } = useI18n();
   const { configured, session } = useAuth();
   const { setTastes } = useApp();
+  const SLIDE_TEXT = [
+    { title: tr((s) => s.onboarding.slide1Title), body: tr((s) => s.onboarding.slide1Body) },
+    { title: tr((s) => s.onboarding.slide2Title), body: tr((s) => s.onboarding.slide2Body) },
+    { title: tr((s) => s.onboarding.slide3Title), body: tr((s) => s.onboarding.slide3Body) },
+  ];
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -46,14 +53,14 @@ export default function Onboarding() {
             <Txt style={{ fontWeight: '800', fontSize: 22, color: t.text }}>Recipe-Snap</Txt>
           </View>
           <Txt style={{ fontWeight: '800', fontSize: 32, lineHeight: 36, color: t.text, textAlign: 'center', marginBottom: 12 }}>
-            Every recipe you love,{'\n'}in <Txt style={{ color: t.accent, fontWeight: '800', fontSize: 32 }}>one place</Txt>.
+            {tr((s) => s.onboarding.welcomePre)}<Txt style={{ color: t.accent, fontWeight: '800', fontSize: 32 }}>{tr((s) => s.onboarding.welcomeAccent)}</Txt>.
           </Txt>
           <Txt style={{ fontSize: 15, color: t.muted, lineHeight: 23, textAlign: 'center', marginBottom: 28 }}>
-            Import, plan, shop and cook — without a single browser tab.
+            {tr((s) => s.onboarding.welcomeSubtitle)}
           </Txt>
-          <PrimaryButton t={t} full onPress={() => setStep(1)} style={{ paddingVertical: 17 }}>Get started</PrimaryButton>
+          <PrimaryButton t={t} full onPress={() => setStep(1)} style={{ paddingVertical: 17 }}>{tr((s) => s.onboarding.getStarted)}</PrimaryButton>
           <Pressable onPress={finish} style={{ marginTop: 16 }}>
-            <Txt style={{ color: t.muted, fontWeight: '600', fontSize: 14 }}>I already have an account</Txt>
+            <Txt style={{ color: t.muted, fontWeight: '600', fontSize: 14 }}>{tr((s) => s.onboarding.haveAccount)}</Txt>
           </Pressable>
         </View>
       </View>
@@ -64,8 +71,8 @@ export default function Onboarding() {
   if (step === 4) {
     return (
       <View style={{ flex: 1, backgroundColor: t.surface, paddingTop: insets.top + 6, paddingHorizontal: 24 }}>
-        <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text, marginBottom: 8 }}>What do you love to cook?</Txt>
-        <Txt style={{ fontSize: 14.5, color: t.muted, marginBottom: 24 }}>Pick a few — we’ll tune your home feed.</Txt>
+        <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text, marginBottom: 8 }}>{tr((s) => s.onboarding.tastesTitle)}</Txt>
+        <Txt style={{ fontSize: 14.5, color: t.muted, marginBottom: 24 }}>{tr((s) => s.onboarding.tastesSubtitle)}</Txt>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {TASTES.map((x) => (
             <Tag key={x} t={t} active={picked.includes(x)} onPress={() => togglePick(x)}>{x}</Tag>
@@ -73,10 +80,10 @@ export default function Onboarding() {
         </ScrollView>
         <View style={{ paddingBottom: 16 + insets.bottom, paddingTop: 12 }}>
           <PrimaryButton t={t} full onPress={finish} disabled={picked.length === 0} style={{ marginBottom: 12, paddingVertical: 17 }}>
-            {picked.length ? `Continue with ${picked.length} selected` : 'Pick at least one'}
+            {picked.length ? tr((s) => s.onboarding.continueSelected, { count: picked.length }) : tr((s) => s.onboarding.pickAtLeastOne)}
           </PrimaryButton>
           <Pressable onPress={finish} style={{ alignItems: 'center' }}>
-            <Txt style={{ color: t.muted, fontWeight: '600', fontSize: 14 }}>Skip</Txt>
+            <Txt style={{ color: t.muted, fontWeight: '600', fontSize: 14 }}>{tr((s) => s.onboarding.skip)}</Txt>
           </Pressable>
         </View>
       </View>
@@ -85,6 +92,7 @@ export default function Onboarding() {
 
   // Value slides 1..3
   const s = ONB_SLIDES[step - 1];
+  const slideText = SLIDE_TEXT[step - 1];
   const I = Icon[s.icon];
   return (
     <View style={{ flex: 1, backgroundColor: t.surface }}>
@@ -95,7 +103,7 @@ export default function Onboarding() {
           ))}
         </View>
         <Pressable onPress={finish}>
-          <Txt style={{ color: t.muted, fontWeight: '700', fontSize: 14 }}>Skip</Txt>
+          <Txt style={{ color: t.muted, fontWeight: '700', fontSize: 14 }}>{tr((s) => s.onboarding.skip)}</Txt>
         </Pressable>
       </View>
       <View style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 28 }}>
@@ -105,12 +113,12 @@ export default function Onboarding() {
             <I size={28} sw={2} color={t.accentText} />
           </View>
         </View>
-        <Txt style={{ fontWeight: '800', fontSize: 28, lineHeight: 32, color: t.text, marginBottom: 12 }}>{s.title}</Txt>
-        <Txt style={{ fontSize: 15.5, color: t.muted, lineHeight: 25 }}>{s.body}</Txt>
+        <Txt style={{ fontWeight: '800', fontSize: 28, lineHeight: 32, color: t.text, marginBottom: 12 }}>{slideText.title}</Txt>
+        <Txt style={{ fontSize: 15.5, color: t.muted, lineHeight: 25 }}>{slideText.body}</Txt>
       </View>
       <View style={{ paddingHorizontal: 24, paddingBottom: 24 + insets.bottom }}>
         <PrimaryButton t={t} full onPress={() => setStep(step + 1)} icon={<Icon.arrowR size={18} sw={2.4} color={t.accentText} />} style={{ paddingVertical: 17 }}>
-          {step === 3 ? 'Almost there' : 'Next'}
+          {step === 3 ? tr((s) => s.onboarding.almostThere) : tr((s) => s.common.next)}
         </PrimaryButton>
       </View>
     </View>
