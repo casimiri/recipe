@@ -9,7 +9,7 @@ planning, shopping for, and cooking recipes.
 ## Features
 
 - **Onboarding** — welcome + 3 value slides + taste preferences
-- **Home** — greeting, search, category pills, recipe grid
+- **Home** — greeting, search, category pills, recipe grid **personalized by your onboarding tastes** (matching recipes float to the top; shows as "For you")
 - **Search** — live filtering, trending searches, **recent searches** (per-user, synced), browse-by-category, filter sheet
 - **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, AI tools (**Scale / Substitute / Make easier**), **add to cookbook**, and **share & export** (copy link, native share sheet, print, save as **PDF**)
 - **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to a cookbook

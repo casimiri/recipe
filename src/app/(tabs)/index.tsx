@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
 import { trEnum } from '../../i18n/enums';
+import { rankByTaste } from '../../utils/taste';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
@@ -15,7 +16,7 @@ import { SearchBar, CategoryRow } from '../../components/Home';
 export default function Home() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { recipes, isSaved, toggleSave, unread, profile, diet } = useApp();
+  const { recipes, isSaved, toggleSave, unread, profile, diet, tastes } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [cat, setCat] = useState('popular');
@@ -23,7 +24,9 @@ export default function Home() {
   // Dietary preferences apply as a baseline filter across the feed.
   const pool = diet.length ? recipes.filter((r) => diet.every((d) => r.tags.includes(d))) : recipes;
   const list = cat === 'popular' ? pool : pool.filter((r) => r.cuisine === cat || r.meal === cat);
-  const shown = list.length ? list : pool;
+  // Tastes are a soft signal: float matching recipes up without hiding any.
+  const shown = rankByTaste(list.length ? list : pool, tastes);
+  const personalized = tastes.length > 0 && cat === 'popular';
 
   // pair recipes into rows of 2 for the grid
   const rows: typeof shown[] = [];
@@ -62,7 +65,7 @@ export default function Home() {
       </View>
 
       <SectionHead
-        title={cat === 'popular' ? tr((s) => s.home.popularRecipes) : tr((s) => s.home.categoryRecipes, { cat: trEnum(cat, lang) })}
+        title={personalized ? tr((s) => s.home.forYou) : cat === 'popular' ? tr((s) => s.home.popularRecipes) : tr((s) => s.home.categoryRecipes, { cat: trEnum(cat, lang) })}
         action={tr((s) => s.home.seeAll)}
         onAction={() => router.push({ pathname: '/search', params: { cat } })}
         t={t}
