@@ -49,6 +49,9 @@ export const en = {
     haveAccount: 'Already have an account? Sign in',
     noAccount: "Don't have an account? Sign up",
     continueGuest: 'Continue as guest',
+    forgot: 'Forgot password?',
+    resetSent: 'Check your email for a reset link.',
+    enterEmail: 'Enter your email first.',
     welcomeBack: 'Welcome back',
     createAccountTitle: 'Create your account',
     signInSubtitle: 'Sign in to sync your recipes everywhere.',
@@ -283,6 +286,8 @@ export const en = {
     invite: 'Invite friends',
     inviteMessage: 'Join me on Recipe-Snap to import, plan and cook recipes — https://recipe-snap.app',
     signOut: 'Sign out',
+    deleteAccount: 'Delete account',
+    deleteAccountConfirm: 'Permanently delete your account and all your data? This cannot be undone.',
     chooseLanguage: 'Choose language',
   },
   pro: {

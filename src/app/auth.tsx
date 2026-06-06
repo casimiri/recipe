@@ -12,7 +12,7 @@ import { PrimaryButton } from '../components/atoms';
 export default function Auth() {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [mode, setMode] = useState<'in' | 'up'>('in');
@@ -20,6 +20,15 @@ export default function Auth() {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const forgot = async () => {
+    setError(null); setNotice(null);
+    if (!email.trim()) { setError(tr((s) => s.auth.enterEmail)); return; }
+    const res = await resetPassword(email);
+    if (res.error) setError(res.error);
+    else setNotice(tr((s) => s.auth.resetSent));
+  };
 
   const submit = async () => {
     setBusy(true);
@@ -59,6 +68,13 @@ export default function Auth() {
         </View>
 
         {error ? <Txt style={{ color: t.danger, fontSize: 13, marginBottom: 8, marginTop: 4 }}>{error}</Txt> : null}
+        {notice ? <Txt style={{ color: t.accent, fontSize: 13, marginBottom: 8, marginTop: 4, fontWeight: '600' }}>{notice}</Txt> : null}
+
+        {mode === 'in' ? (
+          <Pressable onPress={forgot} style={{ alignSelf: 'flex-end', marginTop: 4 }}>
+            <Txt style={{ color: t.muted, fontSize: 13, fontWeight: '600' }}>{tr((s) => s.auth.forgot)}</Txt>
+          </Pressable>
+        ) : null}
 
         <PrimaryButton t={t} full onPress={submit} disabled={busy || !email || !password} style={{ marginTop: 16, paddingVertical: 16 }}>
           {busy ? tr((s) => s.auth.pleaseWait) : mode === 'in' ? tr((s) => s.auth.signIn) : tr((s) => s.auth.signUp)}

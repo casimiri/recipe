@@ -48,6 +48,9 @@ export const fr: UIStrings = {
     haveAccount: 'Vous avez déjà un compte ? Connectez-vous',
     noAccount: "Pas de compte ? Inscrivez-vous",
     continueGuest: 'Continuer en tant qu’invité',
+    forgot: 'Mot de passe oublié ?',
+    resetSent: 'Consultez votre e-mail pour réinitialiser.',
+    enterEmail: 'Saisissez d’abord votre e-mail.',
     welcomeBack: 'Bon retour',
     createAccountTitle: 'Créez votre compte',
     signInSubtitle: 'Connectez-vous pour synchroniser vos recettes partout.',
@@ -282,6 +285,8 @@ export const fr: UIStrings = {
     invite: 'Inviter des amis',
     inviteMessage: 'Rejoignez-moi sur Recipe-Snap pour importer, planifier et cuisiner — https://recipe-snap.app',
     signOut: 'Se déconnecter',
+    deleteAccount: 'Supprimer le compte',
+    deleteAccountConfirm: 'Supprimer définitivement votre compte et toutes vos données ? Action irréversible.',
     chooseLanguage: 'Choisir la langue',
   },
   pro: {

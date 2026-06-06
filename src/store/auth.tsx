@@ -13,6 +13,8 @@ interface AuthCtx {
   signIn: (email: string, password: string) => Promise<{ error?: string }>;
   signUp: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<{ error?: string }>;
+  deleteAccount: () => Promise<{ error?: string }>;
 }
 
 const Ctx = createContext<AuthCtx | null>(null);
@@ -66,6 +68,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut: async () => {
       if (supabase) await supabase.auth.signOut();
       setSession(null);
+    },
+    resetPassword: async (email) => {
+      if (!supabase) return {};
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      return { error: error?.message };
+    },
+    // Calls the delete-account function (service role) to remove the user's
+    // rows + auth record, then clears the local session.
+    deleteAccount: async () => {
+      if (!supabase) { setSession(null); return {}; }
+      const { error } = await supabase.functions.invoke('delete-account', { body: {} });
+      if (error) return { error: error.message };
+      await supabase.auth.signOut().catch(() => {});
+      setSession(null);
+      return {};
     },
   };
 

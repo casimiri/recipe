@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, Share } from 'react-native';
+import { View, Pressable, Share, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -34,7 +34,7 @@ function Row({ icon, label, t, right, onPress, last }: { icon: keyof typeof Icon
 export default function Settings() {
   const { t, accent, darkPref, setAccent, setDarkPref } = useTheme();
   const { tr, lang, setLang } = useI18n();
-  const { configured, signOut } = useAuth();
+  const { configured, signOut, deleteAccount } = useAuth();
   const { diet, setDiet, units, setUnits, profile, saved, byId, pro, proRenewsAt, priceCents, currency } = useApp();
   const router = useRouter();
   const [dietOpen, setDietOpen] = useState(false);
@@ -149,9 +149,23 @@ export default function Settings() {
       </View>
 
       {configured ? (
-        <Pressable onPress={async () => { await signOut(); router.replace('/auth'); }} style={{ ...card, padding: 16, alignItems: 'center' }}>
-          <Txt style={{ color: t.danger, fontWeight: '700', fontSize: 15 }}>{tr((s) => s.settings.signOut)}</Txt>
-        </Pressable>
+        <View style={{ gap: 12 }}>
+          <Pressable onPress={async () => { await signOut(); router.replace('/auth'); }} style={{ ...card, padding: 16, alignItems: 'center' }}>
+            <Txt style={{ color: t.danger, fontWeight: '700', fontSize: 15 }}>{tr((s) => s.settings.signOut)}</Txt>
+          </Pressable>
+          <Pressable
+            onPress={() => Alert.alert(
+              tr((s) => s.settings.deleteAccount),
+              tr((s) => s.settings.deleteAccountConfirm),
+              [
+                { text: tr((s) => s.common.cancel), style: 'cancel' },
+                { text: tr((s) => s.settings.deleteAccount), style: 'destructive', onPress: async () => { await deleteAccount(); router.replace('/auth'); } },
+              ],
+            )}
+            style={{ padding: 16, alignItems: 'center' }}>
+            <Txt style={{ color: t.muted, fontWeight: '600', fontSize: 13.5 }}>{tr((s) => s.settings.deleteAccount)}</Txt>
+          </Pressable>
+        </View>
       ) : null}
 
       <Sheet open={dietOpen} onClose={() => setDietOpen(false)} t={t} title={tr((s) => s.settings.dietary)}>

@@ -62,6 +62,7 @@ supabase/
   functions/import-recipe/   OpenAI recipe extraction (AI-quota gated)
   functions/ai-tools/        OpenAI substitutions + step simplification (AI-quota gated)
   functions/subscribe/       mock Pro purchase (flips subscriptions.pro)
+  functions/delete-account/  removes the user's rows, avatars + auth record
   functions/_shared/         cors + billing helpers (quota / Pro checks)
   config.toml
 .env.example
@@ -276,6 +277,10 @@ on conflict (id) do nothing;
   recipes, plan, tastes) is pushed up the first time you log in to an empty
   account.
 - **Tokens** auto-refresh only while the app is foregrounded (RN best practice).
+- **Account management:** the sign-in screen has **Forgot password?**
+  (`supabase.auth.resetPasswordForEmail`), and Settings → **Delete account**
+  calls the `delete-account` function to remove the user's rows, avatars and
+  auth record (irreversible, behind a confirm).
 - **Avatars sync:** a profile photo picked from the library is uploaded to the
   public `avatars` Storage bucket on save, and its public URL is stored on
   `profiles.avatar` — so it renders across devices. If the upload fails (or in
