@@ -182,6 +182,8 @@ export const en = {
     summary: 'This week · {count} meals planned',
     addTo: 'Add to {meal}',
     generateList: 'Generate grocery list',
+    reminders: 'Meal reminders',
+    timeToCook: 'Time to cook {title}',
     addSlot: 'Add {meal}',
     breakfast: 'Breakfast',
     lunch: 'Lunch',

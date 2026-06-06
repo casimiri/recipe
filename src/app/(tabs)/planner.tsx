@@ -18,7 +18,7 @@ const TODAY = 'Wed';
 export default function Planner() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { plan, addToPlan, byId, recipes } = useApp();
+  const { plan, addToPlan, byId, recipes, mealReminders, setMealReminders } = useApp();
   const mealLabel = (m: MealSlot) => tr((s) => s.planner[m]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -36,10 +36,18 @@ export default function Planner() {
           <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text }}>{tr((s) => s.planner.title)}</Txt>
           <Txt style={{ fontSize: 13.5, color: t.muted, marginTop: 3 }}>{tr((s) => s.planner.summary, { count: plannedCount })}</Txt>
         </View>
-        <IconBtn t={t} onPress={() => router.push('/(tabs)/grocery')} style={{ backgroundColor: t.accentSoft }}>
-          <Icon.cart size={21} sw={2} color={t.accent} />
-        </IconBtn>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <IconBtn t={t} onPress={() => setMealReminders(!mealReminders)} style={{ backgroundColor: mealReminders ? t.accent : t.accentSoft }}>
+            <Icon.bell size={21} sw={2} color={mealReminders ? t.accentText : t.accent} />
+          </IconBtn>
+          <IconBtn t={t} onPress={() => router.push('/(tabs)/grocery')} style={{ backgroundColor: t.accentSoft }}>
+            <Icon.cart size={21} sw={2} color={t.accent} />
+          </IconBtn>
+        </View>
       </View>
+      {mealReminders ? (
+        <Txt style={{ fontSize: 12.5, color: t.accent, fontWeight: '600', marginTop: -10, marginBottom: 16 }}>{tr((s) => s.planner.reminders)}</Txt>
+      ) : null}
 
       {/* Week strip */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingBottom: 4 }} style={{ marginBottom: 22, marginHorizontal: -20, paddingHorizontal: 20 }}>

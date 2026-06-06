@@ -181,6 +181,8 @@ export const de: UIStrings = {
     summary: 'Diese Woche · {count} Mahlzeiten geplant',
     addTo: 'Zu {meal} hinzufügen',
     generateList: 'Einkaufsliste erstellen',
+    reminders: 'Mahlzeit-Erinnerungen',
+    timeToCook: 'Zeit, {title} zu kochen',
     addSlot: '{meal} hinzufügen',
     breakfast: 'Frühstück',
     lunch: 'Mittagessen',

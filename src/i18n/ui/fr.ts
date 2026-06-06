@@ -181,6 +181,8 @@ export const fr: UIStrings = {
     summary: 'Cette semaine · {count} repas planifiés',
     addTo: 'Ajouter au {meal}',
     generateList: 'Générer la liste de courses',
+    reminders: 'Rappels de repas',
+    timeToCook: 'C’est l’heure de cuisiner {title}',
     addSlot: 'Ajouter {meal}',
     breakfast: 'Petit-déjeuner',
     lunch: 'Déjeuner',

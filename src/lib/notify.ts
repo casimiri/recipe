@@ -56,6 +56,10 @@ export async function ensureNotifPermission(): Promise<boolean> {
         importance: N.AndroidImportance.HIGH,
         vibrationPattern: [0, 250, 250, 250],
       });
+      await N.setNotificationChannelAsync('meals', {
+        name: 'Meal reminders',
+        importance: N.AndroidImportance.DEFAULT,
+      });
     }
     const existing = await N.getPermissionsAsync();
     let status = existing.status;
@@ -98,5 +102,64 @@ export async function cancelNotif(id: string | null): Promise<void> {
     await N.cancelScheduledNotificationAsync(id);
   } catch {
     /* already fired or cancelled */
+  }
+}
+
+/** A planned meal to remind about, as a weekly recurring time. */
+export interface MealReminder {
+  weekday: number; // 1 = Sunday … 7 = Saturday (expo weekly convention)
+  hour: number;
+  minute: number;
+  title: string;
+  body: string;
+}
+
+// Notifications we own are tagged so we can re-sync meal reminders without
+// disturbing cook-timer notifications.
+async function cancelTagged(N: NonNullable<NotifModule>, kind: string) {
+  const all = await N.getAllScheduledNotificationsAsync();
+  await Promise.all(
+    all
+      .filter((n) => (n.content?.data as { kind?: string } | undefined)?.kind === kind)
+      .map((n) => N.cancelScheduledNotificationAsync(n.identifier)),
+  );
+}
+
+/**
+ * Replace all scheduled meal reminders with `meals` (weekly recurring). Called
+ * whenever the plan or the reminders toggle changes; cancels only meal
+ * reminders, leaving cook timers intact. No-ops where notifications are
+ * unsupported (Expo Go on Android).
+ */
+export async function syncMealReminders(meals: MealReminder[]): Promise<void> {
+  const N = await load();
+  if (!N || !(await ensureNotifPermission())) return;
+  try {
+    await cancelTagged(N, 'meal');
+    for (const m of meals) {
+      await N.scheduleNotificationAsync({
+        content: { title: m.title, body: m.body, sound: true, data: { kind: 'meal' } },
+        trigger: {
+          type: N.SchedulableTriggerInputTypes.WEEKLY,
+          weekday: m.weekday,
+          hour: m.hour,
+          minute: m.minute,
+          channelId: 'meals',
+        },
+      });
+    }
+  } catch {
+    /* scheduling unavailable */
+  }
+}
+
+/** Cancel every scheduled meal reminder (e.g. when the toggle is turned off). */
+export async function clearMealReminders(): Promise<void> {
+  const N = await load();
+  if (!N) return;
+  try {
+    await cancelTagged(N, 'meal');
+  } catch {
+    /* nothing scheduled */
   }
 }

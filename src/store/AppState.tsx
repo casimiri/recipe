@@ -10,6 +10,7 @@ import {
 import { RECIPES as SEED_RECIPES, PROFILE } from '../data/seed';
 import { useI18n } from '../i18n';
 import { localizeRecipe } from '../i18n/recipes';
+import { syncMealReminders, clearMealReminders, type MealReminder } from '../lib/notify';
 import { useAuth } from './auth';
 import type { Recipe, WeekPlan, MealSlot, GroceryItem, Profile } from '../data/types';
 
@@ -24,6 +25,8 @@ interface AppCtx {
   plan: WeekPlan;
   setPlan: (p: WeekPlan) => void;
   addToPlan: (day: string, meal: MealSlot, id: string | null) => void;
+  mealReminders: boolean;
+  setMealReminders: (v: boolean) => void;
   groceryChecked: string[];
   setGroceryChecked: (ids: string[]) => void;
   toggleGrocery: (id: string) => void;
@@ -71,7 +74,7 @@ const Ctx = createContext<AppCtx | null>(null);
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const { lang } = useI18n();
+  const { lang, tr } = useI18n();
   const [ready, setReady] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>(SEED_RECIPES);
   const [state, setState] = useState<UserState>(DEFAULT_STATE);
@@ -149,6 +152,35 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const aiRemaining = proActive ? null : Math.max(0, billing.freeAiQuota - usedThisPeriod);
   const canUseAi = proActive || usedThisPeriod < billing.freeAiQuota;
 
+  // Keep local meal-reminder notifications in sync with the plan + the toggle.
+  // (No-ops where notifications are unsupported, e.g. Expo Go on Android.)
+  useEffect(() => {
+    if (!ready) return;
+    if (!state.mealReminders) { clearMealReminders(); return; }
+    const WEEKDAY: Record<string, number> = { Sun: 1, Mon: 2, Tue: 3, Wed: 4, Thu: 5, Fri: 6, Sat: 7 };
+    const MEAL_TIME: Record<MealSlot, { h: number; m: number }> = {
+      breakfast: { h: 8, m: 0 }, lunch: { h: 12, m: 30 }, dinner: { h: 18, m: 30 },
+    };
+    const meals: MealReminder[] = [];
+    for (const [day, slots] of Object.entries(state.plan)) {
+      const weekday = WEEKDAY[day];
+      if (!weekday) continue;
+      (['breakfast', 'lunch', 'dinner'] as MealSlot[]).forEach((slot) => {
+        const id = slots[slot];
+        if (!id) return;
+        const r = localizedRecipes.find((x) => x.id === id);
+        if (!r) return;
+        const tm = MEAL_TIME[slot];
+        meals.push({
+          weekday, hour: tm.h, minute: tm.m,
+          title: tr((s) => s.planner[slot]),
+          body: tr((s) => s.planner.timeToCook, { title: r.title }),
+        });
+      });
+    }
+    syncMealReminders(meals);
+  }, [ready, state.mealReminders, state.plan, lang, localizedRecipes, tr]);
+
   const value: AppCtx = useMemo(() => ({
     ready,
     recipes: localizedRecipes,
@@ -172,6 +204,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setPlan: (p) => update({ plan: p }),
     addToPlan: (day, meal, id) =>
       setState((s) => ({ ...s, plan: { ...s.plan, [day]: { ...s.plan[day], [meal]: id } } })),
+    mealReminders: state.mealReminders,
+    setMealReminders: (v) => update({ mealReminders: v }),
     groceryChecked: state.groceryChecked,
     setGroceryChecked: (ids) => update({ groceryChecked: ids }),
     toggleGrocery: (id) =>

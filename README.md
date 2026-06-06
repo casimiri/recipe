@@ -14,7 +14,7 @@ planning, shopping for, and cooking recipes.
 - **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, AI tools (**Scale / Substitute / Make easier**), **add to cookbook**, and **share & export** (copy link, native share sheet, print, save as **PDF**)
 - **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to a cookbook
 - **Cook mode** — full-screen step-by-step with step **timers** (fire a local **notification** when they finish, so they alert you even if the app is backgrounded) and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
-- **Meal planner** — weekly calendar with breakfast / lunch / dinner slots
+- **Meal planner** — weekly calendar with breakfast / lunch / dinner slots, plus an optional **meal reminders** toggle that schedules weekly local notifications ("Time to cook X") for planned meals
 - **Smart grocery list** — grouped by aisle or recipe, progress, order-delivery flow
 - **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes
 - **Cookbooks** — browse, **create your own**, and add/remove recipes; plus **Profile / social** (created / saved / cooked tabs), **Notifications** (real cook-timer reminders with an unread badge, above the social feed), **Settings**

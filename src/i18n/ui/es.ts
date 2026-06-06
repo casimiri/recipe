@@ -181,6 +181,8 @@ export const es: UIStrings = {
     summary: 'Esta semana · {count} comidas planificadas',
     addTo: 'Añadir a {meal}',
     generateList: 'Generar lista de la compra',
+    reminders: 'Recordatorios de comidas',
+    timeToCook: 'Hora de cocinar {title}',
     addSlot: 'Añadir {meal}',
     breakfast: 'Desayuno',
     lunch: 'Almuerzo',

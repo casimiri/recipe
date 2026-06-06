@@ -59,6 +59,8 @@ export interface UserState {
   aiUsed: number;
   /** The 'YYYY-MM' period `aiUsed` applies to; usage resets when it rolls over. */
   aiPeriodKey: string;
+  /** Whether to schedule local notifications for planned meals. */
+  mealReminders: boolean;
 }
 
 export const DEFAULT_STATE: UserState = {
@@ -84,6 +86,7 @@ export const DEFAULT_STATE: UserState = {
   proRenewsAt: '',
   aiUsed: 0,
   aiPeriodKey: '',
+  mealReminders: false,
 };
 
 const GUEST = 'guest';
