@@ -99,7 +99,7 @@ export default function RecipeDetail() {
     const next = !easier;
     setEasier(next);
     if (next && !easySteps) {
-      const res = await aiTool({ tool: 'simplify', recipe: r });
+      const res = await aiTool({ tool: 'simplify', recipe: r, lang });
       if (res.steps) setEasySteps(res.steps);
     }
   };
@@ -109,7 +109,7 @@ export default function RecipeDetail() {
     setSheet('sub');
     setSubs(null);
     setSubLoading(true);
-    const res = await aiTool({ tool: 'substitute', recipe: r, ingredient: ing?.item });
+    const res = await aiTool({ tool: 'substitute', recipe: r, ingredient: ing?.item, lang });
     setSubs(res.substitutions || []);
     setSubLoading(false);
   };

@@ -30,7 +30,7 @@ type Stage = 'pick' | 'extract' | 'preview';
 
 export default function ImportScreen() {
   const { t } = useTheme();
-  const { tr } = useI18n();
+  const { tr, lang } = useI18n();
   const { saveRecipe, cookbooks, addToCookbook } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -67,7 +67,7 @@ export default function ImportScreen() {
         : await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.6 });
       if (!res.canceled && res.assets[0]?.base64) imageBase64 = res.assets[0].base64;
     }
-    const r = await importRecipe({ url: url ?? (link || s.sample), sourceKind: s.kind, imageBase64 });
+    const r = await importRecipe({ url: url ?? (link || s.sample), sourceKind: s.kind, imageBase64, lang });
     setRecipe({ ...r, source: { kind: s.kind, handle: url || link || s.sample, name: srcLabel(s) } });
   };
 

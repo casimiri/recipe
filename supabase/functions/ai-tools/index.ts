@@ -14,6 +14,15 @@ interface Body {
     steps: { t: string; d: string }[];
   };
   ingredient?: string;
+  lang?: string;
+}
+
+const LANG_NAMES: Record<string, string> = { en: 'English', fr: 'French', es: 'Spanish', de: 'German' };
+
+/** A trailing instruction so the model answers in the user's language. */
+function inLang(lang?: string): string {
+  const name = lang && LANG_NAMES[lang];
+  return name && lang !== 'en' ? ` Respond entirely in ${name}.` : '';
 }
 
 async function chat(system: string, user: string) {
@@ -45,7 +54,7 @@ Deno.serve(async (req) => {
     if (body.tool === 'substitute') {
       const target = body.ingredient ?? body.recipe.ingredients[0]?.item ?? '';
       const out = await chat(
-        'You are a culinary assistant. Suggest 3 practical substitutions for a single ingredient, accounting for ratio adjustments. Respond as JSON: { "substitutions": string[] }.',
+        `You are a culinary assistant. Suggest 3 practical substitutions for a single ingredient, accounting for ratio adjustments. Respond as JSON: { "substitutions": string[] }.${inLang(body.lang)}`,
         `Recipe: ${body.recipe.title}. Suggest substitutions for: "${target}".`,
       );
       return json({ substitutions: (out.substitutions ?? []).slice(0, 4) });
@@ -54,7 +63,7 @@ Deno.serve(async (req) => {
     if (body.tool === 'simplify') {
       const steps = body.recipe.steps.map((s, i) => `${i + 1}. ${s.t}: ${s.d}`).join('\n');
       const out = await chat(
-        'You simplify cooking instructions for beginners. Rewrite each step to be shorter and clearer while preserving order and meaning. Respond as JSON: { "steps": [ { "t": string, "d": string } ] } with the same number of steps.',
+        `You simplify cooking instructions for beginners. Rewrite each step to be shorter and clearer while preserving order and meaning. Respond as JSON: { "steps": [ { "t": string, "d": string } ] } with the same number of steps.${inLang(body.lang)}`,
         `Recipe: ${body.recipe.title}\n\nSteps:\n${steps}`,
       );
       return json({ steps: out.steps ?? body.recipe.steps.map((s) => ({ t: s.t, d: s.d })) });

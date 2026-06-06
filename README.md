@@ -18,7 +18,7 @@ planning, shopping for, and cooking recipes.
 - **Smart grocery list** — grouped by aisle or recipe, progress, order-delivery flow
 - **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes
 - **Cookbooks** — browse, **create your own**, and add/remove recipes; plus **Profile / social** (created / saved / cooked tabs), **Notifications** (real cook-timer reminders with an unread badge, above the social feed), **Settings**
-- **Languages** — **English, French, Spanish, German**; defaults to the device language and switchable in Settings. Translates the whole UI plus the seed recipe catalog's titles/descriptions (imported recipes stay in their original language)
+- **Languages** — **English, French, Spanish, German**; defaults to the device language and switchable in Settings. Translates the whole UI, the seed recipe catalog (titles/descriptions/ingredients/steps), and **AI output** — imported recipes and the Substitute / Make-easier tools come back in the active language (enum-ish fields stay English so filtering keeps working)
 - **Units** — switch ingredient quantities between **metric and imperial** in Settings; conversion flows through recipe detail, cook mode, and exports
 - **Export** — save your created + saved recipes as a single PDF from Settings
 - **Light + dark mode** and an **accent-colour picker** in Settings (the canonical "Sunny" visual direction)

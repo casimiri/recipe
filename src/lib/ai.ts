@@ -4,6 +4,7 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import { subFor } from '../utils/format';
 import { U } from '../data/seed';
 import type { Recipe, SourceKind } from '../data/types';
+import type { Lang } from '../i18n';
 
 /** Demo recipe returned by the offline import fallback. */
 export const IMPORT_DEMO: Recipe = {
@@ -38,6 +39,8 @@ export interface ImportInput {
   text?: string;
   imageBase64?: string;
   sourceKind: SourceKind;
+  /** Active UI language — the function returns the recipe's free text in it. */
+  lang?: Lang;
 }
 
 /** Parse a recipe from a link/text/photo via the import-recipe Edge Function. */
@@ -63,6 +66,8 @@ export async function aiTool(args: {
   tool: AiTool;
   recipe: Recipe;
   ingredient?: string;
+  /** Active UI language — the function responds in it. */
+  lang?: Lang;
 }): Promise<{ substitutions?: string[]; steps?: { t: string; d: string }[] }> {
   if (isSupabaseConfigured && supabase) {
     try {

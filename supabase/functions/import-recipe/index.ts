@@ -59,6 +59,20 @@ interface ImportBody {
   text?: string;
   imageBase64?: string;
   sourceKind?: string;
+  lang?: string;
+}
+
+const LANG_NAMES: Record<string, string> = { en: 'English', fr: 'French', es: 'Spanish', de: 'German' };
+
+/**
+ * Instruct the model to write the recipe's human-readable text in the user's
+ * language, while keeping the enum-ish fields in English so the app's filtering
+ * and category logic (which compares against English values) keeps working.
+ */
+function langDirective(lang?: string): string {
+  const name = lang && LANG_NAMES[lang];
+  if (!name || lang === 'en') return '';
+  return `\n\nWrite the following fields in ${name}: title, desc, each ingredient's "item" and "g" (group label), and each step's "t" and "d". Keep these fields in ENGLISH exactly: "meal" (one of Breakfast/Lunch/Dinner/Dessert/Drink), "difficulty" (Easy/Medium/Hard). Keep "cuisine" and "tags" as short English words.`;
 }
 
 async function fetchPageText(url: string): Promise<string> {
@@ -103,6 +117,7 @@ Deno.serve(async (req) => {
     } else {
       return json({ error: 'Provide url, text, or imageBase64.' }, 400);
     }
+    prompt += langDirective(body.lang);
     userContent.unshift({ type: 'text', text: prompt });
 
     const resp = await fetch('https://api.openai.com/v1/chat/completions', {
