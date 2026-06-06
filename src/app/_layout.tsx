@@ -37,6 +37,7 @@ function RootStack() {
         <Stack.Screen name="search" options={{ animation: 'fade' }} />
         <Stack.Screen name="notifications" />
         <Stack.Screen name="settings" />
+        <Stack.Screen name="edit-profile" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="checkout" />
       </Stack>
     </>

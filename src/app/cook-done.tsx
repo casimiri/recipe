@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Pressable } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
 import { useApp } from '../store/AppState';
 import { Txt } from '../components/Txt';
@@ -9,11 +9,17 @@ import { PrimaryButton } from '../components/atoms';
 
 export default function CookDone() {
   const { t } = useTheme();
-  const { byId, recipes } = useApp();
+  const { byId, recipes, logCook } = useApp();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const r = byId(String(id)) || recipes[0];
   const [rating, setRating] = useState(0);
+
+  // Persist the cook (with whatever rating was given) before leaving, then go.
+  const finish = (to: Href) => {
+    logCook(r.id, rating);
+    router.replace(to);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: t.surface, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 30 }}>
@@ -32,8 +38,8 @@ export default function CookDone() {
         ))}
       </View>
       <View style={{ width: '100%', gap: 12 }}>
-        <PrimaryButton t={t} full onPress={() => router.replace('/(tabs)')}>Back to home</PrimaryButton>
-        <PrimaryButton t={t} ghost full icon={<Icon.share size={17} sw={2} color={t.text} />} onPress={() => router.replace(`/recipe/${r.id}`)}>Share your cook</PrimaryButton>
+        <PrimaryButton t={t} full onPress={() => finish('/(tabs)')}>Back to home</PrimaryButton>
+        <PrimaryButton t={t} ghost full icon={<Icon.share size={17} sw={2} color={t.text} />} onPress={() => finish(`/recipe/${r.id}`)}>Share your cook</PrimaryButton>
       </View>
     </View>
   );

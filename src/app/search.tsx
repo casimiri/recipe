@@ -15,7 +15,7 @@ const TRENDING = ['Crepes', 'Chicken curry', 'Overnight oats', 'Matcha', 'Tacos'
 
 export default function Search() {
   const { t } = useTheme();
-  const { recipes, isSaved, toggleSave } = useApp();
+  const { recipes, isSaved, toggleSave, diet } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ filter?: string; cat?: string }>();
@@ -30,7 +30,8 @@ export default function Search() {
     const ql = q.toLowerCase();
     const matchQ = !q || r.title.toLowerCase().includes(ql) || r.cuisine.toLowerCase().includes(ql) || r.tags.some((tg) => tg.toLowerCase().includes(ql));
     const matchF = active.every((f) => r.tags.includes(f) || r.difficulty === f || r.meal === f);
-    return matchQ && matchF;
+    const matchDiet = diet.every((d) => r.tags.includes(d));
+    return matchQ && matchF && matchDiet;
   });
 
   const empty = !q && active.length === 0;

@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
-import { View, Pressable, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Pressable, ScrollView, ActivityIndicator, Share } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -51,6 +54,53 @@ export default function RecipeDetail() {
   const [subItem, setSubItem] = useState<Ingredient | null>(null);
   const [subs, setSubs] = useState<string[] | null>(null);
   const [subLoading, setSubLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const recipeUrl = `https://recipe-snap.app/r/${r.id}`;
+
+  // A self-contained printable/exportable HTML version of the recipe.
+  const recipeHtml = () => {
+    const ing = r.ingredients
+      .map((i) => `<li>${fmtQty(i.qty)}${i.unit ? ' ' + i.unit : ''} ${i.item}</li>`)
+      .join('');
+    const steps = r.steps.map((s) => `<li><strong>${s.t}</strong><br/>${s.d}</li>`).join('');
+    return `<html><head><meta name="viewport" content="width=device-width, initial-scale=1"/>
+      <style>body{font-family:-apple-system,Helvetica,Arial,sans-serif;padding:28px;color:#1a1a1a}
+      h1{font-size:26px;margin:0 0 4px}.meta{color:#888;margin-bottom:18px;font-size:13px}
+      h2{font-size:18px;margin:24px 0 8px}li{margin-bottom:8px;line-height:1.45}
+      img{width:100%;max-height:280px;object-fit:cover;border-radius:14px;margin-bottom:18px}</style></head>
+      <body><img src="${r.img}"/><h1>${r.title}</h1>
+      <div class="meta">${r.cuisine} · ${r.time} mins · ${r.servings} servings · ${r.cal} cal</div>
+      <p>${r.desc}</p>
+      <h2>Ingredients</h2><ul>${ing}</ul>
+      <h2>Directions</h2><ol>${steps}</ol>
+      <p class="meta">${recipeUrl}</p></body></html>`;
+  };
+
+  // Dispatch for the share-sheet actions. Cancellation/unsupported = silent no-op.
+  const onShare = async (label: string) => {
+    try {
+      if (label === 'Copy link') {
+        await Clipboard.setStringAsync(recipeUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+        return;
+      }
+      setSheet(null);
+      if (label === 'Stories') {
+        await Share.share({ message: `${r.title} — ${recipeUrl}`, url: recipeUrl });
+      } else if (label === 'Print') {
+        await Print.printAsync({ html: recipeHtml() });
+      } else if (label === 'Save PDF') {
+        const { uri } = await Print.printToFileAsync({ html: recipeHtml() });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
+        }
+      }
+    } catch {
+      // user dismissed the OS sheet or the action is unsupported on this platform
+    }
+  };
 
   const scale = servings / r.servings;
   const saved = isSaved(r.id);
@@ -292,12 +342,14 @@ export default function RecipeDetail() {
         title="Added to your plan" body={`${r.title} is on the calendar.`} cta="Open meal plan" onCta={() => router.push('/(tabs)/planner')} />
 
       {/* Share */}
-      <Sheet open={sheet === 'share'} onClose={() => setSheet(null)} t={t} title="Share recipe">
+      <Sheet open={sheet === 'share'} onClose={() => { setSheet(null); setCopied(false); }} t={t} title="Share recipe">
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <Dish src={r.img} alt="" radius={12} style={{ width: 54, height: 54 }} />
           <View>
             <Txt style={{ fontWeight: '700', color: t.text, fontSize: 15 }}>{r.title}</Txt>
-            <Txt style={{ fontSize: 12.5, color: t.muted }}>recipe-snap.app/r/{r.id}</Txt>
+            <Txt style={{ fontSize: 12.5, color: copied ? t.accent : t.muted, fontWeight: copied ? '700' : '400' }}>
+              {copied ? 'Link copied!' : `recipe-snap.app/r/${r.id}`}
+            </Txt>
           </View>
         </View>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -307,7 +359,7 @@ export default function RecipeDetail() {
             { icon: <Icon.printer size={22} sw={2} color={t.text} />, label: 'Print' },
             { icon: <Icon.download size={22} sw={2} color={t.text} />, label: 'Save PDF' },
           ].map((o) => (
-            <Pressable key={o.label} onPress={() => setSheet(null)} style={{ alignItems: 'center', gap: 8, flex: 1 }}>
+            <Pressable key={o.label} onPress={() => onShare(o.label)} style={{ alignItems: 'center', gap: 8, flex: 1 }}>
               <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: t.surface2, alignItems: 'center', justifyContent: 'center' }}>{o.icon}</View>
               <Txt style={{ fontSize: 12, color: t.muted, fontWeight: '600' }}>{o.label}</Txt>
             </Pressable>

@@ -1,6 +1,7 @@
 // auth.tsx — session context. When Supabase is configured it uses real
 // email/password auth; otherwise the app runs in a local "guest" mode.
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -25,12 +26,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
-    supabase.auth.getSession().then(({ data }) => {
+    const sb = supabase;
+    sb.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    return () => sub.subscription.unsubscribe();
+    const { data: sub } = sb.auth.onAuthStateChange((_e, s) => setSession(s));
+
+    // Refresh tokens only while the app is in the foreground (RN best practice).
+    const onAppState = (next: string) => {
+      if (next === 'active') sb.auth.startAutoRefresh();
+      else sb.auth.stopAutoRefresh();
+    };
+    if (AppState.currentState === 'active') sb.auth.startAutoRefresh();
+    const appSub = AppState.addEventListener('change', onAppState);
+
+    return () => {
+      sub.subscription.unsubscribe();
+      appSub.remove();
+      sb.auth.stopAutoRefresh();
+    };
   }, []);
 
   const value: AuthCtx = {

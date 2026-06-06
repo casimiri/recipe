@@ -9,22 +9,21 @@ import { Icon } from '../../components/Icon';
 import { Avatar, PrimaryButton } from '../../components/atoms';
 import { RecipeCard } from '../../components/RecipeCard';
 import { compact } from '../../utils/format';
-import { PROFILE } from '../../data/seed';
 
 type Tab = 'created' | 'saved' | 'cooked';
 
 export default function Profile() {
   const { t } = useTheme();
-  const { saved, byId, isSaved } = useApp();
+  const { saved, byId, isSaved, profile, cooked } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('created');
-  const p = PROFILE;
+  const p = profile;
 
   const data = {
     created: p.created.map(byId).filter(Boolean),
     saved: saved.map(byId).filter(Boolean),
-    cooked: ['curry', 'crepes', 'salmon', 'tacos'].map(byId).filter(Boolean),
+    cooked: cooked.map((c) => byId(c.id)).filter(Boolean),
   }[tab] as NonNullable<ReturnType<typeof byId>>[];
 
   const rows: typeof data[] = [];
@@ -58,7 +57,7 @@ export default function Profile() {
       </View>
 
       <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-        <PrimaryButton t={t} full icon={<Icon.edit size={16} sw={2} color={t.accentText} />}>Edit profile</PrimaryButton>
+        <PrimaryButton t={t} full icon={<Icon.edit size={16} sw={2} color={t.accentText} />} onPress={() => router.push('/edit-profile')}>Edit profile</PrimaryButton>
         <PrimaryButton t={t} ghost icon={<Icon.share size={16} sw={2} color={t.text} />}>Share</PrimaryButton>
       </View>
 

@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAuth } from '../store/auth';
+import { useApp } from '../store/AppState';
 import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
 import { Screen, ScreenHeader } from '../components/Screen';
+import { Sheet, Tag, PrimaryButton } from '../components/atoms';
+import { FILTERS } from '../data/seed';
 import { ACCENTS } from '../theme/tokens';
 import type { Tokens } from '../theme/tokens';
 
@@ -33,7 +36,13 @@ function Row({ icon, label, t, right, onPress, last }: { icon: keyof typeof Icon
 export default function Settings() {
   const { t, accent, isDark, setAccent, toggleDark } = useTheme();
   const { configured, signOut } = useAuth();
+  const { diet, setDiet } = useApp();
   const router = useRouter();
+  const [dietOpen, setDietOpen] = useState(false);
+
+  const toggleDiet = (d: string) =>
+    setDiet(diet.includes(d) ? diet.filter((x) => x !== d) : [...diet, d]);
+  const dietLabel = diet.length === 0 ? 'Any' : diet.length === 1 ? diet[0] : `${diet.length} selected`;
 
   const card = { backgroundColor: t.surface, borderRadius: t.radius, borderWidth: 1, borderColor: t.border, overflow: 'hidden' as const };
   const sectionLabel = { fontSize: 12.5, fontWeight: '800' as const, color: t.muted, textTransform: 'uppercase' as const, letterSpacing: 0.6, marginBottom: 10 };
@@ -74,14 +83,14 @@ export default function Settings() {
         <Txt style={sectionLabel}>Preferences</Txt>
         <View style={card}>
           <Row icon="globe" label="Units" t={t} right={<Txt style={{ fontSize: 13.5, color: t.muted }}>Metric</Txt>} />
-          <Row icon="leaf" label="Dietary preferences" t={t} right={<Txt style={{ fontSize: 13.5, color: t.muted }}>Vegetarian</Txt>} last />
+          <Row icon="leaf" label="Dietary preferences" t={t} right={<Txt style={{ fontSize: 13.5, color: t.muted }}>{dietLabel}</Txt>} onPress={() => setDietOpen(true)} last />
         </View>
       </View>
 
       <View style={{ marginBottom: 24 }}>
         <Txt style={sectionLabel}>Account</Txt>
         <View style={card}>
-          <Row icon="user" label="Edit profile" t={t} />
+          <Row icon="user" label="Edit profile" t={t} onPress={() => router.push('/edit-profile')} />
           <Row icon="bell" label="Notifications" t={t} onPress={() => router.push('/notifications')} />
           <Row icon="download" label="Export my recipes" t={t} last />
         </View>
@@ -100,6 +109,19 @@ export default function Settings() {
           <Txt style={{ color: t.danger, fontWeight: '700', fontSize: 15 }}>Sign out</Txt>
         </Pressable>
       ) : null}
+
+      <Sheet open={dietOpen} onClose={() => setDietOpen(false)} t={t} title="Dietary preferences">
+        <Txt style={{ fontSize: 13.5, color: t.muted, lineHeight: 20, marginBottom: 16 }}>
+          Recipes across the app will be limited to ones matching every preference you pick.
+        </Txt>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
+          {FILTERS.diet.map((d) => <Tag key={d} t={t} active={diet.includes(d)} onPress={() => toggleDiet(d)}>{d}</Tag>)}
+        </View>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <PrimaryButton t={t} ghost full onPress={() => setDiet([])}>Clear</PrimaryButton>
+          <PrimaryButton t={t} full onPress={() => setDietOpen(false)}>Done</PrimaryButton>
+        </View>
+      </Sheet>
     </Screen>
   );
 }

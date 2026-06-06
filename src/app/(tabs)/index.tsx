@@ -9,17 +9,18 @@ import { Icon } from '../../components/Icon';
 import { Avatar, SectionHead } from '../../components/atoms';
 import { RecipeCard } from '../../components/RecipeCard';
 import { SearchBar, CategoryRow } from '../../components/Home';
-import { PROFILE, CATEGORIES } from '../../data/seed';
 
 export default function Home() {
   const { t } = useTheme();
-  const { recipes, isSaved, toggleSave, unread, byId } = useApp();
+  const { recipes, isSaved, toggleSave, unread, profile, diet } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [cat, setCat] = useState('popular');
 
-  const list = cat === 'popular' ? recipes : recipes.filter((r) => r.cuisine === cat || r.meal === cat);
-  const shown = list.length ? list : recipes;
+  // Dietary preferences apply as a baseline filter across the feed.
+  const pool = diet.length ? recipes.filter((r) => diet.every((d) => r.tags.includes(d))) : recipes;
+  const list = cat === 'popular' ? pool : pool.filter((r) => r.cuisine === cat || r.meal === cat);
+  const shown = list.length ? list : pool;
 
   // pair recipes into rows of 2 for the grid
   const rows: typeof shown[] = [];
@@ -31,7 +32,7 @@ export default function Home() {
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <Pressable onPress={() => router.push('/(tabs)/profile')}>
-          <Avatar src={PROFILE.avatar} size={46} t={t} />
+          <Avatar src={profile.avatar} size={46} t={t} />
         </Pressable>
         <Pressable onPress={() => router.push('/notifications')} style={{
           backgroundColor: t.surface2, width: 46, height: 46, borderRadius: 23,
@@ -44,7 +45,7 @@ export default function Home() {
         </Pressable>
       </View>
 
-      <Txt style={{ fontSize: 14, color: t.muted, marginBottom: 4, fontWeight: '600' }}>Hello, {PROFILE.name.split(' ')[0]}!</Txt>
+      <Txt style={{ fontSize: 14, color: t.muted, marginBottom: 4, fontWeight: '600' }}>Hello, {profile.name.split(' ')[0]}!</Txt>
       <Txt style={{ fontWeight: '800', fontSize: 28, lineHeight: 33, color: t.text, marginBottom: 18 }}>
         Make your own food,{'\n'}stay at <Txt style={{ color: t.accent, fontWeight: '800', fontSize: 28 }}>home</Txt>
       </Txt>

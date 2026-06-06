@@ -3,11 +3,12 @@
 // applies updates locally, and persists in the background.
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
-  listRecipes, addRecipe, loadUserState, saveUserState, DEFAULT_STATE, UserState,
+  listRecipes, addRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
+  DEFAULT_STATE, UserState, ProfileRow, CookLog,
 } from '../lib/repo';
-import { RECIPES as SEED_RECIPES, NOTIFICATIONS } from '../data/seed';
+import { RECIPES as SEED_RECIPES, NOTIFICATIONS, PROFILE } from '../data/seed';
 import { useAuth } from './auth';
-import type { Recipe, WeekPlan, MealSlot, GroceryItem } from '../data/types';
+import type { Recipe, WeekPlan, MealSlot, GroceryItem, Profile } from '../data/types';
 
 interface AppCtx {
   ready: boolean;
@@ -27,8 +28,14 @@ interface AppCtx {
   addGroceryItem: (name: string) => void;
   tastes: string[];
   setTastes: (t: string[]) => void;
+  cooked: CookLog[];
+  logCook: (id: string, rating: number) => void;
+  diet: string[];
+  setDiet: (d: string[]) => void;
   unread: number;
   markNotificationsRead: () => void;
+  profile: Profile;
+  updateProfile: (patch: Partial<ProfileRow>) => Promise<void>;
 }
 
 const Ctx = createContext<AppCtx | null>(null);
@@ -39,18 +46,38 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [recipes, setRecipes] = useState<Recipe[]>(SEED_RECIPES);
   const [state, setState] = useState<UserState>(DEFAULT_STATE);
   const [unread, setUnread] = useState(NOTIFICATIONS.length);
+  const [dbProfile, setDbProfile] = useState<ProfileRow | null>(null);
 
   useEffect(() => {
     let active = true;
+    setReady(false);
     (async () => {
-      const [rs, us] = await Promise.all([listRecipes(), loadUserState(user?.id)]);
+      const [rs, us, prof] = await Promise.all([
+        listRecipes(),
+        loadUserState(user?.id),
+        user?.id ? getProfile(user.id) : Promise.resolve(null),
+      ]);
       if (!active) return;
       setRecipes([...rs]);
       setState(us);
+      setDbProfile(prof);
       setReady(true);
     })();
     return () => { active = false; };
   }, [user?.id]);
+
+  // Merge the DB profile over the seed profile (stats stay from seed for now).
+  const profile: Profile = useMemo(() => (
+    dbProfile
+      ? {
+          ...PROFILE,
+          name: dbProfile.name || PROFILE.name,
+          handle: dbProfile.handle || PROFILE.handle,
+          avatar: dbProfile.avatar || PROFILE.avatar,
+          bio: dbProfile.bio || PROFILE.bio,
+        }
+      : PROFILE
+  ), [dbProfile]);
 
   // Persist whenever user state changes (after initial hydration).
   useEffect(() => {
@@ -93,9 +120,29 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       })),
     tastes: state.tastes,
     setTastes: (t) => update({ tastes: t }),
+    cooked: state.cooked,
+    // Record a finished cook; most recent first, de-duped so re-cooking a
+    // recipe moves it to the front and updates its rating.
+    logCook: (id, rating) =>
+      setState((s) => ({
+        ...s,
+        cooked: [{ id, rating, at: Date.now() }, ...s.cooked.filter((c) => c.id !== id)],
+      })),
+    diet: state.diet,
+    setDiet: (d) => update({ diet: d }),
     unread,
     markNotificationsRead: () => setUnread(0),
-  }), [ready, recipes, state, unread, user?.id]);
+    profile,
+    updateProfile: async (patch) => {
+      setDbProfile((p) => ({
+        name: patch.name ?? p?.name ?? PROFILE.name,
+        handle: patch.handle ?? p?.handle ?? PROFILE.handle,
+        avatar: patch.avatar ?? p?.avatar ?? PROFILE.avatar,
+        bio: patch.bio ?? p?.bio ?? PROFILE.bio,
+      }));
+      if (user?.id) await upsertProfile(user.id, patch);
+    },
+  }), [ready, recipes, state, unread, user?.id, profile]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
