@@ -276,6 +276,7 @@ export const fr: UIStrings = {
     cta: 'Passer Pro — {price}/mois',
     processing: 'Traitement…',
     active: 'Pro actif',
+    until: 'Jusqu’au {date}',
     limitTitle: 'Limite IA gratuite atteinte',
     limitBody: 'Vous avez utilisé vos {count} actions IA gratuites ce mois-ci. Passez Pro pour une IA illimitée.',
     aiLeft: '{count} IA gratuites restantes',

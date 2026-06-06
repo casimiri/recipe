@@ -276,6 +276,7 @@ export const de: UIStrings = {
     cta: 'Pro holen — {price}/Mon.',
     processing: 'Wird verarbeitet…',
     active: 'Pro aktiv',
+    until: 'Bis {date}',
     limitTitle: 'Kostenloses KI-Limit erreicht',
     limitBody: 'Du hast deine {count} kostenlosen KI-Aktionen diesen Monat aufgebraucht. Hol dir Pro für unbegrenzte KI.',
     aiLeft: '{count} kostenlose KI übrig',

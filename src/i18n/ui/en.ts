@@ -277,6 +277,7 @@ export const en = {
     cta: 'Go Pro — {price}/mo',
     processing: 'Processing…',
     active: 'Pro active',
+    until: 'Until {date}',
     limitTitle: 'Free AI limit reached',
     limitBody: 'You’ve used all {count} free AI actions this month. Go Pro for unlimited AI.',
     aiLeft: '{count} free AI left',

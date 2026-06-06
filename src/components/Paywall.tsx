@@ -14,7 +14,7 @@ import { Sheet, PrimaryButton } from './atoms';
 export function Paywall({ open, onClose, reachedLimit }: { open: boolean; onClose: () => void; reachedLimit?: boolean }) {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { pro, priceCents, currency, freeAiQuota, subscribe } = useApp();
+  const { pro, proRenewsAt, priceCents, currency, freeAiQuota, subscribe } = useApp();
   const [busy, setBusy] = useState(false);
   const price = formatPrice(priceCents, currency);
 
@@ -56,9 +56,14 @@ export function Paywall({ open, onClose, reachedLimit }: { open: boolean; onClos
       </View>
 
       {pro ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 16 }}>
-          <Icon.sparkle size={18} color={t.accent} />
-          <Txt style={{ fontSize: 15.5, fontWeight: '800', color: t.accent }}>{tr((s) => s.pro.active)}</Txt>
+        <View style={{ alignItems: 'center', gap: 4, paddingVertical: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Icon.sparkle size={18} color={t.accent} />
+            <Txt style={{ fontSize: 15.5, fontWeight: '800', color: t.accent }}>{tr((s) => s.pro.active)}</Txt>
+          </View>
+          {proRenewsAt ? (
+            <Txt style={{ fontSize: 13, color: t.muted }}>{tr((s) => s.pro.until, { date: new Date(proRenewsAt).toLocaleDateString() })}</Txt>
+          ) : null}
         </View>
       ) : (
         <PrimaryButton t={t} full disabled={busy} onPress={go} style={{ paddingVertical: 16 }}>

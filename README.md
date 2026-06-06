@@ -198,7 +198,7 @@ supabase functions deploy subscribe
   recipe shows a relevant picture, not a stock one).
 - **`ai-tools`** — returns ingredient substitutions or simplified step text.
 - **`subscribe`** — mock Pro purchase: flips the signed-in user's
-  `subscriptions.pro` for ~30 days (the single seam a real Stripe/RevenueCat/IAP
+  `subscriptions.pro`, valid for **one month** from the purchase date (the single seam a real Stripe/RevenueCat/IAP
   integration would replace).
 
 Both AI functions accept a `lang` field (the active UI language) and respond in

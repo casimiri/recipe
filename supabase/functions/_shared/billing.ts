@@ -54,9 +54,11 @@ export function isPro(sub: any): boolean {
   return !!sub?.pro && (!sub.renews_at || new Date(sub.renews_at).getTime() > Date.now());
 }
 
-/** Flip the user to Pro for ~30 days (mock "payment"). Returns the row. */
+/** Flip the user to Pro, valid for one month from today (mock "payment"). */
 export async function startSubscription(uid: string) {
-  const renews_at = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1); // exactly one calendar month from the subscription date
+  const renews_at = d.toISOString();
   const res = await rest('subscriptions?on_conflict=user_id', {
     method: 'POST',
     headers: { Prefer: 'resolution=merge-duplicates,return=representation' },

@@ -43,7 +43,7 @@ export default function Settings() {
   const { t, accent, isDark, setAccent, toggleDark } = useTheme();
   const { tr, lang, setLang } = useI18n();
   const { configured, signOut } = useAuth();
-  const { diet, setDiet, units, setUnits, profile, saved, byId, pro, priceCents, currency } = useApp();
+  const { diet, setDiet, units, setUnits, profile, saved, byId, pro, proRenewsAt, priceCents, currency } = useApp();
   const router = useRouter();
   const [dietOpen, setDietOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -138,7 +138,7 @@ export default function Settings() {
         <Txt style={sectionLabel}>Recipe-Snap</Txt>
         <View style={card}>
           <Row icon="sparkle" label={tr((s) => s.pro.title)} t={t}
-            right={<Txt style={{ fontSize: 13.5, fontWeight: pro ? '700' : '400', color: pro ? t.accent : t.muted }}>{pro ? tr((s) => s.pro.active) : tr((s) => s.pro.manageFree, { price: formatPrice(priceCents, currency) })}</Txt>}
+            right={<Txt style={{ fontSize: 13.5, fontWeight: pro ? '700' : '400', color: pro ? t.accent : t.muted }}>{pro ? (proRenewsAt ? tr((s) => s.pro.until, { date: new Date(proRenewsAt).toLocaleDateString() }) : tr((s) => s.pro.active)) : tr((s) => s.pro.manageFree, { price: formatPrice(priceCents, currency) })}</Txt>}
             onPress={() => setPayOpen(true)} />
           <Row icon="share" label={tr((s) => s.settings.invite)} t={t} last />
         </View>

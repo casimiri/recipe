@@ -53,6 +53,8 @@ export interface UserState {
   notifsSeenAt: number;
   /** Recipe-Snap Pro (reconciled from the server for signed-in users). */
   pro: boolean;
+  /** ISO date the Pro subscription is valid until (one month from purchase). */
+  proRenewsAt: string;
   /** AI actions used in `aiPeriodKey` (free-tier quota counter). */
   aiUsed: number;
   /** The 'YYYY-MM' period `aiUsed` applies to; usage resets when it rolls over. */
@@ -79,6 +81,7 @@ export const DEFAULT_STATE: UserState = {
   reminders: [],
   notifsSeenAt: 0,
   pro: false,
+  proRenewsAt: '',
   aiUsed: 0,
   aiPeriodKey: '',
 };
@@ -295,8 +298,8 @@ export async function getBillingConfig(): Promise<BillingConfig> {
   }
 }
 
-/** Read the signed-in user's Pro state + this period's AI usage from the server. */
-export async function getSubscription(userId: string): Promise<{ pro: boolean; aiUsed: number } | null> {
+/** Read the signed-in user's Pro state, renewal date + this period's AI usage. */
+export async function getSubscription(userId: string): Promise<{ pro: boolean; renewsAt: string | null; aiUsed: number } | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   try {
     const { data } = await supabase
@@ -304,23 +307,34 @@ export async function getSubscription(userId: string): Promise<{ pro: boolean; a
       .select('pro, renews_at, ai_period, ai_count')
       .eq('user_id', userId)
       .maybeSingle();
-    if (!data) return { pro: false, aiUsed: 0 };
+    if (!data) return { pro: false, renewsAt: null, aiUsed: 0 };
     const pro = !!data.pro && (!data.renews_at || new Date(data.renews_at).getTime() > Date.now());
     const aiUsed = data.ai_period === aiPeriod() ? (data.ai_count ?? 0) : 0;
-    return { pro, aiUsed };
+    return { pro, renewsAt: data.renews_at ?? null, aiUsed };
   } catch {
     return null;
   }
 }
 
-/** Mock "purchase" — calls the subscribe function which flips Pro server-side. */
-export async function startSubscription(): Promise<boolean> {
-  if (!isSupabaseConfigured || !supabase) return false;
+/** One calendar month from now as an ISO string — the guest mock's validity. */
+export function oneMonthFromNow(): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + 1);
+  return d.toISOString();
+}
+
+/**
+ * Mock "purchase" — calls the subscribe function which flips Pro server-side.
+ * Returns the renewal date (valid-until) on success, or null on failure.
+ */
+export async function startSubscription(): Promise<string | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
   try {
     const { data, error } = await supabase.functions.invoke('subscribe', { body: {} });
-    return !error && !!data?.subscription?.pro;
+    if (error || !data?.subscription?.pro) return null;
+    return data.subscription.renews_at ?? null;
   } catch {
-    return false;
+    return null;
   }
 }
 

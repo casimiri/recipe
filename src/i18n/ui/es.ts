@@ -276,6 +276,7 @@ export const es: UIStrings = {
     cta: 'Hazte Pro — {price}/mes',
     processing: 'Procesando…',
     active: 'Pro activo',
+    until: 'Hasta el {date}',
     limitTitle: 'Límite de IA gratis alcanzado',
     limitBody: 'Has usado tus {count} acciones de IA gratis este mes. Hazte Pro para IA ilimitada.',
     aiLeft: '{count} IA gratis restantes',

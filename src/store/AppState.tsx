@@ -5,7 +5,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import {
   listRecipes, addRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
   DEFAULT_STATE, UserState, ProfileRow, CookLog, UserCookbook, AppReminder,
-  getBillingConfig, getSubscription, startSubscription, aiPeriod, type BillingConfig,
+  getBillingConfig, getSubscription, startSubscription, aiPeriod, oneMonthFromNow, type BillingConfig,
 } from '../lib/repo';
 import { RECIPES as SEED_RECIPES, PROFILE } from '../data/seed';
 import { useI18n } from '../i18n';
@@ -52,6 +52,8 @@ interface AppCtx {
   updateProfile: (patch: Partial<ProfileRow>) => Promise<void>;
   // Billing / Pro
   pro: boolean;
+  /** ISO date Pro is valid until, or '' when not subscribed. */
+  proRenewsAt: string;
   priceCents: number;
   currency: string;
   freeAiQuota: number;
@@ -97,7 +99,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setRecipes([...rs]);
       // Reconcile Pro state + AI usage from the server (authoritative for
       // signed-in users); guests keep whatever is in their local state.
-      setState(sub ? { ...us, pro: sub.pro, aiUsed: sub.aiUsed, aiPeriodKey: aiPeriod() } : us);
+      setState(sub ? { ...us, pro: sub.pro, proRenewsAt: sub.renewsAt ?? '', aiUsed: sub.aiUsed, aiPeriodKey: aiPeriod() } : us);
       setDbProfile(prof);
       setBilling(cfg);
       setReady(true);
@@ -138,10 +140,14 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // category filters keep matching; screens localize those labels via trEnum.
   const localizedRecipes = useMemo(() => recipes.map((r) => localizeRecipe(r, lang)), [recipes, lang]);
 
+  // Pro lapses one month after purchase: honour the validity window client-side
+  // too (the server is authoritative and reconciles on next load).
+  const proActive = state.pro && (!state.proRenewsAt || new Date(state.proRenewsAt).getTime() > Date.now());
+
   // Free-tier AI quota: usage resets when the month rolls over.
   const usedThisPeriod = state.aiPeriodKey === aiPeriod() ? state.aiUsed : 0;
-  const aiRemaining = state.pro ? null : Math.max(0, billing.freeAiQuota - usedThisPeriod);
-  const canUseAi = state.pro || usedThisPeriod < billing.freeAiQuota;
+  const aiRemaining = proActive ? null : Math.max(0, billing.freeAiQuota - usedThisPeriod);
+  const canUseAi = proActive || usedThisPeriod < billing.freeAiQuota;
 
   const value: AppCtx = useMemo(() => ({
     ready,
@@ -245,7 +251,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       }));
       if (user?.id) await upsertProfile(user.id, patch);
     },
-    pro: state.pro,
+    pro: proActive,
+    proRenewsAt: proActive ? state.proRenewsAt : '',
     priceCents: billing.priceCents,
     currency: billing.currency,
     freeAiQuota: billing.freeAiQuota,
@@ -253,17 +260,23 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     canUseAi,
     recordAiUse: () =>
       setState((s) => {
-        if (s.pro) return s;
+        if (proActive) return s;
         const p = aiPeriod();
         return s.aiPeriodKey === p ? { ...s, aiUsed: s.aiUsed + 1 } : { ...s, aiPeriodKey: p, aiUsed: 1 };
       }),
     subscribe: async () => {
-      // Signed-in: server flips Pro via the subscribe function. Guest: local mock.
-      const ok = user?.id ? await startSubscription() : true;
-      if (ok) setState((s) => ({ ...s, pro: true }));
-      return ok;
+      // Signed-in: server flips Pro and returns the one-month validity date.
+      // Guest: local mock with the same one-month window.
+      if (user?.id) {
+        const renewsAt = await startSubscription();
+        if (!renewsAt) return false;
+        setState((s) => ({ ...s, pro: true, proRenewsAt: renewsAt }));
+        return true;
+      }
+      setState((s) => ({ ...s, pro: true, proRenewsAt: oneMonthFromNow() }));
+      return true;
     },
-  }), [ready, localizedRecipes, state, unread, user?.id, profile, billing, aiRemaining, canUseAi]);
+  }), [ready, localizedRecipes, state, unread, user?.id, profile, billing, aiRemaining, canUseAi, proActive]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
