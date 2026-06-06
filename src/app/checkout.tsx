@@ -9,7 +9,6 @@ import { Icon } from '../components/Icon';
 import { Screen, ScreenHeader } from '../components/Screen';
 import { PrimaryButton } from '../components/atoms';
 import { withA } from '../theme/tokens';
-import { GROCERY } from '../data/seed';
 
 const STORES = [
   { name: 'Instacart', eta: '2 hr', fee: '$3.99', color: '#43B02A' },
@@ -22,9 +21,9 @@ type Store = (typeof STORES)[number];
 export default function Checkout() {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { groceryChecked, setGroceryChecked } = useApp();
+  const { groceryAisles, groceryExtra, groceryChecked, setGroceryChecked } = useApp();
   const router = useRouter();
-  const allItems = GROCERY.flatMap((g) => g.items);
+  const allItems = [...groceryAisles.flatMap((g) => g.items), ...groceryExtra];
   const toBuy = allItems.filter((i) => !groceryChecked.includes(i.id));
 
   // After ordering we show a confirmation rather than silently bouncing home.

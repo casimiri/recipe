@@ -96,6 +96,7 @@ export const de: UIStrings = {
     addToPlan: 'Zum Plan',
     addToList: 'Zur Liste',
     addToCookbook: 'Zum Kochbuch',
+    yourRating: 'Deine Bewertung',
     aiTools: 'KI-Tools',
     scale: 'Anpassen',
     substitute: 'Ersetzen',
@@ -204,6 +205,7 @@ export const de: UIStrings = {
     orderDelivery: 'Lieferung bestellen',
     progress: '{done} von {total}',
     empty: 'Deine Liste ist leer.',
+    emptyHint: 'Plane Gerichte und ihre Zutaten erscheinen hier.',
   },
   checkout: {
     title: 'Lebensmittel bestellen',

@@ -11,8 +11,9 @@ import { RECIPES as SEED_RECIPES, PROFILE } from '../data/seed';
 import { useI18n } from '../i18n';
 import { localizeRecipe } from '../i18n/recipes';
 import { syncMealReminders, clearMealReminders, type MealReminder } from '../lib/notify';
+import { buildGroceryList } from '../utils/grocery';
 import { useAuth } from './auth';
-import type { Recipe, WeekPlan, MealSlot, GroceryItem, Profile } from '../data/types';
+import type { Recipe, WeekPlan, MealSlot, GroceryItem, GroceryAisle, Profile } from '../data/types';
 
 interface AppCtx {
   ready: boolean;
@@ -28,6 +29,8 @@ interface AppCtx {
   addToPlan: (day: string, meal: MealSlot, id: string | null) => void;
   mealReminders: boolean;
   setMealReminders: (v: boolean) => void;
+  /** Grocery list generated from the meal plan, grouped by aisle. */
+  groceryAisles: GroceryAisle[];
   groceryChecked: string[];
   setGroceryChecked: (ids: string[]) => void;
   toggleGrocery: (id: string) => void;
@@ -39,6 +42,8 @@ interface AppCtx {
   cooked: CookLog[];
   logCook: (id: string, rating: number) => void;
   rateCook: (id: string, rating: number) => void;
+  ratings: Record<string, number>;
+  setRecipeRating: (id: string, rating: number) => void;
   diet: string[];
   setDiet: (d: string[]) => void;
   units: 'metric' | 'imperial';
@@ -151,6 +156,26 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // category filters keep matching; screens localize those labels via trEnum.
   const localizedRecipes = useMemo(() => recipes.map((r) => localizeRecipe(r, lang)), [recipes, lang]);
 
+  // Smart grocery list: derived from the planned recipes' ingredients (in the
+  // active unit system). Built from the base catalog — like the rest of the
+  // grocery tab, item names stay in English.
+  const groceryAisles = useMemo(
+    () => buildGroceryList(state.plan, (id) => recipes.find((r) => r.id === id), state.units),
+    [state.plan, recipes, state.units],
+  );
+
+  // Blend the user's own 1–5 rating into each recipe's displayed score, counted
+  // as one extra review so it nudges (rather than replaces) the catalog average.
+  const ratedRecipes = useMemo(
+    () => localizedRecipes.map((r) => {
+      const mine = state.ratings[r.id];
+      if (!mine) return r;
+      const reviews = r.reviews + 1;
+      return { ...r, rating: Math.round(((r.rating * r.reviews + mine) / reviews) * 10) / 10, reviews };
+    }),
+    [localizedRecipes, state.ratings],
+  );
+
   // Pro lapses one month after purchase: honour the validity window client-side
   // too (the server is authoritative and reconciles on next load).
   const proActive = state.pro && (!state.proRenewsAt || new Date(state.proRenewsAt).getTime() > Date.now());
@@ -191,8 +216,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const value: AppCtx = useMemo(() => ({
     ready,
-    recipes: localizedRecipes,
-    byId: (id) => localizedRecipes.find((r) => r.id === id),
+    recipes: ratedRecipes,
+    byId: (id) => ratedRecipes.find((r) => r.id === id),
     saved: state.saved,
     isSaved: (id) => state.saved.includes(id),
     toggleSave: (id) =>
@@ -242,6 +267,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     },
     mealReminders: state.mealReminders,
     setMealReminders: (v) => update({ mealReminders: v }),
+    groceryAisles,
     groceryChecked: state.groceryChecked,
     setGroceryChecked: (ids) => update({ groceryChecked: ids }),
     toggleGrocery: (id) =>
@@ -275,6 +301,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       }));
       logActivity('cooked', id);
     },
+    ratings: state.ratings,
+    setRecipeRating: (id, rating) =>
+      setState((s) => ({ ...s, ratings: { ...s.ratings, [id]: rating } })),
     // Re-rate an existing cook in place (keeps its date + position).
     rateCook: (id, rating) =>
       setState((s) => ({
@@ -364,7 +393,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({ ...s, pro: true, proRenewsAt: oneMonthFromNow() }));
       return true;
     },
-  }), [ready, localizedRecipes, state, unread, user?.id, profile, billing, aiRemaining, canUseAi, proActive]);
+  }), [ready, localizedRecipes, ratedRecipes, groceryAisles, state, unread, user?.id, profile, billing, aiRemaining, canUseAi, proActive]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -97,6 +97,7 @@ export const en = {
     addToPlan: 'Add to plan',
     addToList: 'Add to list',
     addToCookbook: 'Add to cookbook',
+    yourRating: 'Your rating',
     aiTools: 'AI tools',
     scale: 'Scale',
     substitute: 'Substitute',
@@ -205,6 +206,7 @@ export const en = {
     orderDelivery: 'Order delivery',
     progress: '{done} of {total}',
     empty: 'Your list is empty.',
+    emptyHint: 'Plan some meals and their ingredients show up here.',
   },
   checkout: {
     title: 'Order groceries',

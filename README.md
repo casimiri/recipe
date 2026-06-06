@@ -11,15 +11,15 @@ planning, shopping for, and cooking recipes.
 - **Onboarding** — welcome + 3 value slides + taste preferences
 - **Home** — greeting, search, category pills, recipe grid **personalized by your onboarding tastes** (matching recipes float to the top; shows as "For you")
 - **Search** — live filtering, trending searches, **recent searches** (per-user, synced), browse-by-category, filter sheet
-- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, AI tools (**Scale / Substitute / Make easier**), **add to cookbook**, and **share & export** (copy link, native share sheet, print, save as **PDF**)
+- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **rate it yourself** (your star rating blends into the shown score), AI tools (**Scale / Substitute / Make easier**), **add to cookbook**, and **share & export** (copy link, native share sheet, print, save as **PDF**)
 - **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to a cookbook
 - **Cook mode** — full-screen step-by-step with step **timers** (fire a local **notification** when they finish, so they alert you even if the app is backgrounded) and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
 - **Meal planner** — weekly calendar with breakfast / lunch / dinner slots, plus an optional **meal reminders** toggle that schedules weekly local notifications ("Time to cook X") for planned meals
-- **Smart grocery list** — grouped by aisle or recipe, progress, **add/remove your own items**, order-delivery flow
+- **Smart grocery list** — **auto-generated from your meal plan**: the planned recipes' ingredients are aggregated (duplicates merged across recipes, quantities summed and shown in your unit system) and grouped by aisle or recipe, with progress, **add/remove your own items**, and an order-delivery flow
 - **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes
 - **Cookbooks** — browse, **create and delete your own**, and add/remove recipes; plus **Profile / social** (created / saved / cooked tabs, with **star ratings + re-rate** on cooked recipes), **Notifications** (a real **activity feed** — your cooks, saves, meal-plan adds and imports, plus cook-timer reminders — with an unread badge), **Settings**
 - **Languages** — **English, French, Spanish, German**; defaults to the device language and switchable in Settings. Translates the whole UI, the seed recipe catalog (titles/descriptions/ingredients/steps), and **AI output** — imported recipes and the Substitute / Make-easier tools come back in the active language (enum-ish fields stay English so filtering keeps working)
-- **Units** — switch ingredient quantities between **metric and imperial** in Settings; conversion flows through recipe detail, cook mode, and exports
+- **Units** — switch ingredient quantities between **metric and imperial** in Settings; conversion flows through recipe detail, cook mode, the grocery list, and exports
 - **Export** — save your created + saved recipes as a single PDF from Settings
 - **Recipe-Snap Pro** — free users get a set number of **AI actions per month** (recipe imports + Substitute / Make-easier); a **paywall** offers **Pro** for unlimited AI. Price and free quota are **admin-configurable** (a Supabase config row). The purchase is a **mock** flow (no real charge) with the payment call isolated so it can be swapped for Stripe / store IAP later
 - **Theme** — **System / Light / Dark** mode and an **accent-colour picker** in Settings (the canonical "Sunny" visual direction)
@@ -55,7 +55,7 @@ src/
   store/               auth + AppState contexts
   lib/                 supabase client, repo (data access), ai (edge-function client), share (print/PDF/export HTML), notify (local cook-timer notifications)
   i18n/                I18nProvider + tr() selector, ui/{en,fr,es,de} dictionaries, enums + recipe content localization
-  utils/               formatting helpers (incl. metric↔imperial unit conversion)
+  utils/               formatting helpers (incl. metric↔imperial unit conversion) + grocery-list builder
 supabase/
   migrations/                0001 schema · 0002 avatars bucket · 0003 billing
   seed.sql                   shared recipe catalog (generated)
@@ -252,7 +252,8 @@ on conflict (id) do nothing;
   (`owner = auth.uid()`, protected by RLS).
 - **`profiles`** — auto-created on sign-up via a trigger.
 - **`user_state`** — per-user JSON blob (saved recipes, meal plan, grocery
-  checks/extras, tastes, cooked history with ratings, dietary preferences,
+  checks/extras, tastes, cooked history with ratings, your own per-recipe
+  ratings, dietary preferences,
   unit system, user-created cookbooks, recent searches, app-generated reminders
   + a last-seen timestamp for the notifications badge, and the cached Pro flag +
   monthly AI-usage counter), RLS-scoped to the owner.

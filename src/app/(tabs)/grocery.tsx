@@ -8,20 +8,19 @@ import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
 import { IconBtn, PrimaryButton } from '../../components/atoms';
-import { GROCERY } from '../../data/seed';
 import type { GroceryAisle } from '../../data/types';
 
 export default function Grocery() {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { groceryChecked, toggleGrocery, setGroceryChecked, groceryExtra, addGroceryItem, removeGroceryItem } = useApp();
+  const { groceryAisles, groceryChecked, toggleGrocery, setGroceryChecked, groceryExtra, addGroceryItem, removeGroceryItem } = useApp();
   const extraIds = new Set(groceryExtra.map((g) => g.id));
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [groupBy, setGroupBy] = useState<'aisle' | 'recipe'>('aisle');
   const [adding, setAdding] = useState('');
 
-  const allItems = [...GROCERY.flatMap((g) => g.items), ...groceryExtra];
+  const allItems = [...groceryAisles.flatMap((g) => g.items), ...groceryExtra];
   const total = allItems.length;
   const doneCount = allItems.filter((i) => groceryChecked.includes(i.id)).length;
 
@@ -31,7 +30,7 @@ export default function Grocery() {
     allItems.forEach((i) => { (byRec[i.from] = byRec[i.from] || []).push(i); });
     groups = Object.entries(byRec).map(([aisle, items]) => ({ aisle, items }));
   } else {
-    groups = groceryExtra.length ? [...GROCERY, { aisle: tr((s) => s.grocery.addedByYou), items: groceryExtra }] : GROCERY;
+    groups = groceryExtra.length ? [...groceryAisles, { aisle: tr((s) => s.grocery.addedByYou), items: groceryExtra }] : groceryAisles;
   }
 
   return (
@@ -56,6 +55,13 @@ export default function Grocery() {
           </Pressable>
         ))}
       </View>
+
+      {total === 0 ? (
+        <View style={{ alignItems: 'center', paddingVertical: 40, paddingHorizontal: 24, gap: 6 }}>
+          <Txt style={{ fontSize: 15, fontWeight: '700', color: t.text }}>{tr((s) => s.grocery.empty)}</Txt>
+          <Txt style={{ fontSize: 13.5, color: t.muted, textAlign: 'center' }}>{tr((s) => s.grocery.emptyHint)}</Txt>
+        </View>
+      ) : null}
 
       {groups.map((g) => (
         <View key={g.aisle} style={{ marginBottom: 22 }}>

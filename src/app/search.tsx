@@ -13,12 +13,12 @@ import { RecipeCard } from '../components/RecipeCard';
 import { SearchBar } from '../components/Home';
 import { CATEGORIES, FILTERS } from '../data/seed';
 
-const TRENDING = ['Crepes', 'Chicken curry', 'Overnight oats', 'Matcha', 'Tacos'];
-
 export default function Search() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
   const { recipes, isSaved, toggleSave, diet, recentSearches, addRecentSearch, clearRecentSearches } = useApp();
+  // Trending = the catalog's most-saved recipes, using their (localized) titles.
+  const trending = [...recipes].sort((a, b) => b.saves - a.saves).slice(0, 6);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ filter?: string; cat?: string }>();
@@ -69,7 +69,7 @@ export default function Search() {
             ) : null}
             <SectionHead title={tr((s) => s.search.trending)} t={t} style={{ marginBottom: 12 }} />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 26 }}>
-              {TRENDING.map((term) => <Tag key={term} t={t} onPress={() => setQ(term)}>{term}</Tag>)}
+              {trending.map((r) => <Tag key={r.id} t={t} onPress={() => setQ(r.title)}>{r.title}</Tag>)}
             </View>
             <SectionHead title={tr((s) => s.search.browse)} t={t} style={{ marginBottom: 12 }} />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>

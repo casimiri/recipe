@@ -45,7 +45,7 @@ function AiChip({ t, icon, label, onPress, active }: { t: Tokens; icon: React.Re
 export default function RecipeDetail() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse } = useApp();
+  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse, ratings, setRecipeRating } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -167,7 +167,19 @@ export default function RecipeDetail() {
             <AiChip t={t} icon={<Icon.sparkle size={16} color={t.accent} />} label={easier ? tr((s) => s.recipe.simplified) : tr((s) => s.recipe.makeEasier)} active={easier} onPress={toggleEasier} />
           </ScrollView>
 
-          <Txt style={{ fontSize: 14.5, lineHeight: 23, color: t.muted, marginBottom: 24 }}>{r.desc}</Txt>
+          <Txt style={{ fontSize: 14.5, lineHeight: 23, color: t.muted, marginBottom: 20 }}>{r.desc}</Txt>
+
+          {/* Your rating */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+            <Txt style={{ fontSize: 14.5, fontWeight: '700', color: t.text }}>{tr((s) => s.recipe.yourRating)}</Txt>
+            <View style={{ flexDirection: 'row', gap: 5 }}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Pressable key={n} hitSlop={4} onPress={() => setRecipeRating(r.id, n === ratings[r.id] ? 0 : n)}>
+                  <Icon.star size={24} color={n <= (ratings[r.id] ?? 0) ? t.star : t.border} />
+                </Pressable>
+              ))}
+            </View>
+          </View>
 
           {/* Ingredients */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>

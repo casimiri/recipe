@@ -96,6 +96,7 @@ export const fr: UIStrings = {
     addToPlan: 'Ajouter au menu',
     addToList: 'Ajouter à la liste',
     addToCookbook: 'Ajouter au livre',
+    yourRating: 'Votre note',
     aiTools: 'Outils IA',
     scale: 'Ajuster',
     substitute: 'Substituer',
@@ -204,6 +205,7 @@ export const fr: UIStrings = {
     orderDelivery: 'Commander la livraison',
     progress: '{done} sur {total}',
     empty: 'Votre liste est vide.',
+    emptyHint: 'Planifiez des repas et leurs ingrédients apparaîtront ici.',
   },
   checkout: {
     title: 'Commander les courses',

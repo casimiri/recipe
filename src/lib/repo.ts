@@ -62,12 +62,14 @@ export interface UserState {
   aiPeriodKey: string;
   /** Whether to schedule local notifications for planned meals. */
   mealReminders: boolean;
+  /** The user's own 1–5 rating per recipe id (blended into the displayed rating). */
+  ratings: Record<string, number>;
 }
 
 export const DEFAULT_STATE: UserState = {
   saved: ['crepes', 'curry', 'salmon', 'bowl', 'lava', 'oats'],
   plan: JSON.parse(JSON.stringify(MEAL_PLAN)),
-  groceryChecked: ['g14', 'g17'],
+  groceryChecked: ['g:honey', 'g:salt'],
   groceryExtra: [],
   tastes: [],
   cooked: [
@@ -88,6 +90,7 @@ export const DEFAULT_STATE: UserState = {
   aiUsed: 0,
   aiPeriodKey: '',
   mealReminders: false,
+  ratings: {},
 };
 
 const GUEST = 'guest';
