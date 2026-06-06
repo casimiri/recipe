@@ -45,6 +45,8 @@ export interface UserState {
   cookbooks: UserCookbook[];
   /** Recent search queries, most recent first. */
   recentSearches: string[];
+  /** Recipe ids the user created/imported (the profile "Created" tab), newest first. */
+  created: string[];
   /** App-generated notifications (cook-timer reminders etc.), newest first. */
   reminders: AppReminder[];
   /** Timestamp the notifications screen was last viewed (drives the unread badge). */
@@ -67,6 +69,7 @@ export const DEFAULT_STATE: UserState = {
   units: 'metric',
   cookbooks: [],
   recentSearches: [],
+  created: ['pasta', 'oats'],
   reminders: [],
   notifsSeenAt: 0,
 };

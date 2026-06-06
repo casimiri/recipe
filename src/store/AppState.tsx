@@ -82,9 +82,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     return () => { active = false; };
   }, [user?.id]);
 
-  // Merge the DB profile over the seed profile (stats stay from seed for now).
-  const profile: Profile = useMemo(() => (
-    dbProfile
+  // Merge the DB profile over the seed profile, with the created list and the
+  // recipes/cookbooks stat counts derived from real state (created = the user's
+  // imported/own recipes; cookbooks = the user's own cookbooks). Followers/
+  // following stay seeded — there's no social graph yet.
+  const profile: Profile = useMemo(() => {
+    const base: Profile = dbProfile
       ? {
           ...PROFILE,
           name: dbProfile.name || PROFILE.name,
@@ -92,8 +95,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           avatar: dbProfile.avatar || PROFILE.avatar,
           bio: dbProfile.bio || PROFILE.bio,
         }
-      : PROFILE
-  ), [dbProfile]);
+      : PROFILE;
+    return {
+      ...base,
+      created: state.created,
+      stats: { ...base.stats, recipes: state.created.length, cookbooks: state.cookbooks.length },
+    };
+  }, [dbProfile, state.created, state.cookbooks.length]);
 
   // Persist whenever user state changes (after initial hydration).
   useEffect(() => {
@@ -112,7 +120,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({ ...s, saved: s.saved.includes(id) ? s.saved.filter((x) => x !== id) : [...s.saved, id] })),
     saveRecipe: async (r) => {
       setRecipes((rs) => (rs.find((x) => x.id === r.id) ? rs : [r, ...rs]));
-      setState((s) => ({ ...s, saved: s.saved.includes(r.id) ? s.saved : [r.id, ...s.saved] }));
+      setState((s) => ({
+        ...s,
+        saved: s.saved.includes(r.id) ? s.saved : [r.id, ...s.saved],
+        // saveRecipe is the import/"write your own" path, so the recipe is the
+        // user's own — surface it in the Created tab + recipes stat.
+        created: s.created.includes(r.id) ? s.created : [r.id, ...s.created],
+      }));
       await addRecipe(r, user?.id);
     },
     plan: state.plan,
