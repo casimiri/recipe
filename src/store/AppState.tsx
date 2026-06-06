@@ -46,6 +46,7 @@ interface AppCtx {
   createCookbook: (name: string) => string;
   addToCookbook: (cookbookId: string, recipeId: string) => void;
   removeFromCookbook: (cookbookId: string, recipeId: string) => void;
+  deleteCookbook: (cookbookId: string) => void;
   recentSearches: string[];
   addRecentSearch: (q: string) => void;
   clearRecentSearches: () => void;
@@ -269,6 +270,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         cookbooks: s.cookbooks.map((c) =>
           c.id === cookbookId ? { ...c, recipeIds: c.recipeIds.filter((x) => x !== recipeId) } : c),
       })),
+    deleteCookbook: (cookbookId) =>
+      setState((s) => ({ ...s, cookbooks: s.cookbooks.filter((c) => c.id !== cookbookId) })),
     recentSearches: state.recentSearches,
     // Record a query; dedupe case-insensitively (re-searching moves it to the
     // front) and cap at the 8 most recent.

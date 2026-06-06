@@ -219,6 +219,8 @@ export const fr: UIStrings = {
     subtitle: 'Vos recettes enregistrées, organisées.',
     allSaved: 'Tout enregistré',
     create: 'Créer un livre',
+    delete: 'Supprimer le livre',
+    deleteConfirm: 'Supprimer « {name} » ? Vos recettes enregistrées restent dans votre bibliothèque.',
     namePlaceholder: 'Nom du livre',
     recipesCount: '{count} recettes',
     empty: 'Aucune recette dans ce livre pour le moment.',

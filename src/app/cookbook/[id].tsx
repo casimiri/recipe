@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, ScrollView, Pressable } from 'react-native';
+import { View, ScrollView, Pressable, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useI18n } from '../../i18n';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
@@ -13,14 +14,27 @@ import { COOKBOOKS } from '../../data/seed';
 
 export default function CookbookDetail() {
   const { t } = useTheme();
-  const { saved, byId, recipes, isSaved, toggleSave, cookbooks, removeFromCookbook } = useApp();
+  const { tr } = useI18n();
+  const { saved, byId, recipes, isSaved, toggleSave, cookbooks, removeFromCookbook, deleteCookbook } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
 
   const userCb = cookbooks.find((c) => c.id === id);
-  // Editable = a user-created cookbook (supports removing recipes).
+  // Editable = a user-created cookbook (supports removing recipes + deletion).
   const editable = !!userCb;
+
+  const confirmDelete = () => {
+    if (!userCb) return;
+    Alert.alert(
+      tr((s) => s.cookbooks.delete),
+      tr((s) => s.cookbooks.deleteConfirm, { name: userCb.name }),
+      [
+        { text: tr((s) => s.common.cancel), style: 'cancel' },
+        { text: tr((s) => s.cookbooks.delete), style: 'destructive', onPress: () => { deleteCookbook(userCb.id); router.back(); } },
+      ],
+    );
+  };
 
   let name: string;
   let ids: string[];
@@ -47,7 +61,9 @@ export default function CookbookDetail() {
           <Scrim colors={['transparent', 'rgba(0,0,0,0.6)']} style={{ top: '30%' }} />
           <View style={{ position: 'absolute', top: insets.top + 4, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
             <IconBtn t={t} glass onPress={() => router.back()}><Icon.back size={22} sw={2.2} color={t.text} /></IconBtn>
-            <IconBtn t={t} glass><Icon.share size={19} sw={2} color={t.text} /></IconBtn>
+            {editable ? (
+              <IconBtn t={t} glass onPress={confirmDelete}><Icon.trash size={19} sw={2} color={t.danger} /></IconBtn>
+            ) : null}
           </View>
           <View style={{ position: 'absolute', bottom: 14, left: 18 }}>
             <Txt style={{ fontWeight: '800', fontSize: 25, color: '#fff' }}>{name}</Txt>

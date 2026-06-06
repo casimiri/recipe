@@ -220,6 +220,8 @@ export const en = {
     subtitle: 'Your saved recipes, organized.',
     allSaved: 'All saved',
     create: 'Create cookbook',
+    delete: 'Delete cookbook',
+    deleteConfirm: 'Delete “{name}”? Your saved recipes stay in your library.',
     namePlaceholder: 'Cookbook name',
     recipesCount: '{count} recipes',
     empty: 'No recipes in this cookbook yet.',

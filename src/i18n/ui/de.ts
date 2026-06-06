@@ -219,6 +219,8 @@ export const de: UIStrings = {
     subtitle: 'Deine gespeicherten Rezepte, organisiert.',
     allSaved: 'Alle gespeicherten',
     create: 'Kochbuch erstellen',
+    delete: 'Kochbuch löschen',
+    deleteConfirm: '„{name}“ löschen? Deine gespeicherten Rezepte bleiben in deiner Bibliothek.',
     namePlaceholder: 'Name des Kochbuchs',
     recipesCount: '{count} Rezepte',
     empty: 'Noch keine Rezepte in diesem Kochbuch.',

@@ -219,6 +219,8 @@ export const es: UIStrings = {
     subtitle: 'Tus recetas guardadas, organizadas.',
     allSaved: 'Todo lo guardado',
     create: 'Crear recetario',
+    delete: 'Eliminar recetario',
+    deleteConfirm: '¿Eliminar “{name}”? Tus recetas guardadas seguirán en tu biblioteca.',
     namePlaceholder: 'Nombre del recetario',
     recipesCount: '{count} recetas',
     empty: 'Aún no hay recetas en este recetario.',
