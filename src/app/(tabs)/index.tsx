@@ -3,6 +3,8 @@ import { View, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useI18n } from '../../i18n';
+import { trEnum } from '../../i18n/enums';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
@@ -12,6 +14,7 @@ import { SearchBar, CategoryRow } from '../../components/Home';
 
 export default function Home() {
   const { t } = useTheme();
+  const { tr, lang } = useI18n();
   const { recipes, isSaved, toggleSave, unread, profile, diet } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -45,9 +48,9 @@ export default function Home() {
         </Pressable>
       </View>
 
-      <Txt style={{ fontSize: 14, color: t.muted, marginBottom: 4, fontWeight: '600' }}>Hello, {profile.name.split(' ')[0]}!</Txt>
+      <Txt style={{ fontSize: 14, color: t.muted, marginBottom: 4, fontWeight: '600' }}>{tr((s) => s.home.greeting, { name: profile.name.split(' ')[0] })}</Txt>
       <Txt style={{ fontWeight: '800', fontSize: 28, lineHeight: 33, color: t.text, marginBottom: 18 }}>
-        Make your own food,{'\n'}stay at <Txt style={{ color: t.accent, fontWeight: '800', fontSize: 28 }}>home</Txt>
+        {tr((s) => s.home.headlinePre)}<Txt style={{ color: t.accent, fontWeight: '800', fontSize: 28 }}>{tr((s) => s.home.headlineAccent)}</Txt>
       </Txt>
 
       <View style={{ marginBottom: 20 }}>
@@ -59,8 +62,8 @@ export default function Home() {
       </View>
 
       <SectionHead
-        title={cat === 'popular' ? 'Popular Recipes' : `${cat} Recipes`}
-        action="See all"
+        title={cat === 'popular' ? tr((s) => s.home.popularRecipes) : tr((s) => s.home.categoryRecipes, { cat: trEnum(cat, lang) })}
+        action={tr((s) => s.home.seeAll)}
         onAction={() => router.push({ pathname: '/search', params: { cat } })}
         t={t}
         style={{ marginBottom: 14 }}

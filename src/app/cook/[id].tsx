@@ -5,6 +5,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useI18n } from '../../i18n';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
@@ -60,6 +61,7 @@ function useCountdown(initial: number, onComplete?: () => void, body?: string) {
 }
 
 function CookTimer({ seconds, t, body, onDone }: { seconds: number; t: Tokens; body: string; onDone: () => void }) {
+  const { tr } = useI18n();
   const c = useCountdown(seconds, onDone, body);
   const pct = 1 - c.left / seconds;
   const R = 20, C = 2 * Math.PI * R;
@@ -74,8 +76,8 @@ function CookTimer({ seconds, t, body, onDone }: { seconds: number; t: Tokens; b
         <Icon.timer size={18} sw={2} color={t.accent} />
       </View>
       <View style={{ flex: 1 }}>
-        <Txt style={{ fontSize: 22, fontWeight: '800', color: c.done ? t.accent : t.text }}>{c.done ? 'Done!' : mmss(c.left)}</Txt>
-        <Txt style={{ fontSize: 12, color: t.muted, fontWeight: '600' }}>Step timer</Txt>
+        <Txt style={{ fontSize: 22, fontWeight: '800', color: c.done ? t.accent : t.text }}>{c.done ? tr((s) => s.cook.timerDone) : mmss(c.left)}</Txt>
+        <Txt style={{ fontSize: 12, color: t.muted, fontWeight: '600' }}>{tr((s) => s.cook.stepTimer)}</Txt>
       </View>
       <Pressable onPress={c.toggle} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center' }}>
         {c.running ? <Icon.pause size={18} color={t.accentText} /> : <Icon.play size={18} color={t.accentText} />}
@@ -90,6 +92,7 @@ function CookTimer({ seconds, t, body, onDone }: { seconds: number; t: Tokens; b
 export default function CookMode() {
   useKeepAwake();
   const { t } = useTheme();
+  const { tr } = useI18n();
   const { byId, recipes, units, addReminder } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -119,15 +122,15 @@ export default function CookMode() {
 
       <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 10, paddingBottom: 20 }}>
         <Dish src={r.img} alt={r.title} radius={t.radius} style={{ width: '100%', height: 180, marginBottom: 22 }} />
-        <Txt style={{ fontSize: 13, fontWeight: '700', color: t.accent, marginBottom: 8, letterSpacing: 1 }}>STEP {i + 1} OF {r.steps.length}</Txt>
+        <Txt style={{ fontSize: 13, fontWeight: '700', color: t.accent, marginBottom: 8, letterSpacing: 1 }}>{tr((s) => s.cook.stepOf, { current: i + 1, total: r.steps.length })}</Txt>
         <Txt style={{ fontWeight: '800', fontSize: 26, lineHeight: 31, color: t.text, marginBottom: 14 }}>{step.t}</Txt>
         <Txt style={{ fontSize: 17, lineHeight: 27, color: t.text, marginBottom: 22 }}>{step.d}</Txt>
         {step.timer ? (
           <CookTimer
             seconds={step.timer}
             t={t}
-            body={`Your "${r.title}" step timer finished.`}
-            onDone={() => addReminder({ kind: 'cooked', text: `Step timer finished while cooking ${r.title}`, recipe: r.id })}
+            body={tr((s) => s.notifications.timerFinished, { title: r.title })}
+            onDone={() => addReminder({ kind: 'cooked', text: tr((s) => s.notifications.timerFinished, { title: r.title }), recipe: r.id })}
           />
         ) : null}
       </ScrollView>
@@ -135,17 +138,17 @@ export default function CookMode() {
       {/* Bottom controls */}
       <View style={{ paddingHorizontal: 20, paddingTop: 14, paddingBottom: insets.bottom + 18, borderTopWidth: 1, borderTopColor: t.border, flexDirection: 'row', gap: 12, alignItems: 'center' }}>
         <IconBtn t={t} size={52} onPress={() => setPeek(true)} style={{ backgroundColor: t.surface2 }}><Icon.list size={22} sw={2} color={t.text} /></IconBtn>
-        {i > 0 ? <PrimaryButton t={t} ghost onPress={() => setI(i - 1)} style={{ paddingHorizontal: 20 }}>Back</PrimaryButton> : null}
+        {i > 0 ? <PrimaryButton t={t} ghost onPress={() => setI(i - 1)} style={{ paddingHorizontal: 20 }}>{tr((s) => s.common.back)}</PrimaryButton> : null}
         <View style={{ flex: 1 }}>
           <PrimaryButton t={t} full
             icon={last ? <Icon.check size={18} sw={2.6} color={t.accentText} /> : undefined}
             onPress={() => (last ? router.replace({ pathname: '/cook-done', params: { id: r.id } }) : setI(i + 1))}>
-            {last ? 'Finish' : 'Next step'}
+            {last ? tr((s) => s.cook.finish) : tr((s) => s.cook.nextStep)}
           </PrimaryButton>
         </View>
       </View>
 
-      <Sheet open={peek} onClose={() => setPeek(false)} t={t} title="Ingredients">
+      <Sheet open={peek} onClose={() => setPeek(false)} t={t} title={tr((s) => s.cook.ingredients)}>
         {r.ingredients.map((ing, k) => {
           const c = convertUnit(ing.qty, ing.unit, units);
           return (

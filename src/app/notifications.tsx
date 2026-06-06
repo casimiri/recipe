@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n';
 import { useApp } from '../store/AppState';
 import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
@@ -25,6 +26,7 @@ interface Row {
 
 export default function Notifications() {
   const { t } = useTheme();
+  const { tr } = useI18n();
   const { byId, reminders, unread, markNotificationsRead } = useApp();
   const router = useRouter();
 
@@ -43,7 +45,7 @@ export default function Notifications() {
 
   return (
     <Screen>
-      <ScreenHeader title="Notifications" onBack={() => router.back()} />
+      <ScreenHeader title={tr((s) => s.notifications.title)} onBack={() => router.back()} />
       <View style={{ gap: 4 }}>
         {rows.map((n) => {
           const I = Icon[ICONS[n.kind] || 'bell'];
@@ -57,7 +59,7 @@ export default function Notifications() {
                 <Txt style={{ fontSize: 14.5, color: t.text, lineHeight: 20 }}>
                   <Txt style={{ fontWeight: '700', fontSize: 14.5 }}>{n.who}</Txt> {n.text}
                 </Txt>
-                <Txt style={{ fontSize: 12, color: t.faint, marginTop: 2 }}>{n.time === 'now' ? 'Just now' : `${n.time} ago`}</Txt>
+                <Txt style={{ fontSize: 12, color: t.faint, marginTop: 2 }}>{n.time === 'now' ? tr((s) => s.common.justNow) : tr((s) => s.common.ago, { time: n.time })}</Txt>
               </View>
               {r ? <Dish src={r.img} alt="" radius={10} style={{ width: 44, height: 44 }} /> : null}
             </Pressable>

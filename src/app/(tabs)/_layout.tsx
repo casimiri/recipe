@@ -3,15 +3,17 @@ import { View, Pressable } from 'react-native';
 import { Tabs, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useI18n } from '../../i18n';
+import type { UIStrings } from '../../i18n/ui/en';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
 import type { Tokens } from '../../theme/tokens';
 
-const ITEMS: { name: string; label: string; icon: keyof typeof Icon; iconFill: keyof typeof Icon }[] = [
-  { name: 'index', label: 'Home', icon: 'home', iconFill: 'homeFill' },
-  { name: 'cookbooks', label: 'Cookbooks', icon: 'book', iconFill: 'bookFill' },
-  { name: 'planner', label: 'Plan', icon: 'calendar', iconFill: 'calendarFill' },
-  { name: 'grocery', label: 'List', icon: 'cart', iconFill: 'cartFill' },
+const ITEMS: { name: string; label: keyof UIStrings['tabs']; icon: keyof typeof Icon; iconFill: keyof typeof Icon }[] = [
+  { name: 'index', label: 'home', icon: 'home', iconFill: 'homeFill' },
+  { name: 'cookbooks', label: 'cookbooks', icon: 'book', iconFill: 'bookFill' },
+  { name: 'planner', label: 'plan', icon: 'calendar', iconFill: 'calendarFill' },
+  { name: 'grocery', label: 'list', icon: 'cart', iconFill: 'cartFill' },
 ];
 
 interface TabBarProps {
@@ -21,6 +23,7 @@ interface TabBarProps {
 
 function PillTabBar({ state, navigation }: TabBarProps) {
   const { t } = useTheme() as { t: Tokens };
+  const { tr } = useI18n();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const currentName = state.routes[state.index]?.name;
@@ -38,7 +41,7 @@ function PillTabBar({ state, navigation }: TabBarProps) {
           backgroundColor: on ? t.accent : 'transparent',
         }}>
         <I size={22} sw={2} color={on ? t.accentText : t.muted} />
-        {on ? <Txt style={{ fontSize: 13.5, fontWeight: '700', color: t.accentText }}>{cfg.label}</Txt> : null}
+        {on ? <Txt style={{ fontSize: 13.5, fontWeight: '700', color: t.accentText }}>{tr((s) => s.tabs[cfg.label])}</Txt> : null}
       </Pressable>
     );
   };

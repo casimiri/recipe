@@ -45,7 +45,8 @@
           "cameraPermission": "Recipe-Snap uses your camera to snap photos of recipes and cookbook pages."
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

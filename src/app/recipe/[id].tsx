@@ -6,6 +6,8 @@ import * as Sharing from 'expo-sharing';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useI18n } from '../../i18n';
+import { trEnum } from '../../i18n/enums';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
@@ -41,6 +43,7 @@ function AiChip({ t, icon, label, onPress, active }: { t: Tokens; icon: React.Re
 
 export default function RecipeDetail() {
   const { t } = useTheme();
+  const { tr, lang } = useI18n();
   const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -137,7 +140,7 @@ export default function RecipeDetail() {
             <RatingBadge value={r.rating} t={t} style={{ marginTop: 4, paddingHorizontal: 11, paddingVertical: 7 }} />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8, marginBottom: 18 }}>
-            <Txt style={{ fontSize: 13.5, color: t.muted, fontWeight: '600' }}>{r.cuisine}</Txt>
+            <Txt style={{ fontSize: 13.5, color: t.muted, fontWeight: '600' }}>{trEnum(r.cuisine, lang)}</Txt>
             <Txt style={{ color: t.faint }}>·</Txt>
             <SourceTag source={r.source} t={t} />
           </View>
@@ -147,21 +150,21 @@ export default function RecipeDetail() {
             <StatChip vertical t={t} icon={<Icon.clock size={22} sw={2} color={t.accent} />} value={`${r.time}`} label="mins" />
             <StatChip vertical t={t} icon={<Icon.users size={22} sw={2} color={t.accent} />} value={String(servings).padStart(2, '0')} label="servings" />
             <StatChip vertical t={t} icon={<Icon.flame size={22} color={t.accent} />} value={Math.round(r.cal * scale)} label="cal" />
-            <StatChip vertical t={t} icon={<Icon.layers size={22} sw={2} color={t.accent} />} label={r.difficulty} />
+            <StatChip vertical t={t} icon={<Icon.layers size={22} sw={2} color={t.accent} />} label={trEnum(r.difficulty, lang)} />
           </View>
 
           {/* AI tools */}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20, marginBottom: 22 }} contentContainerStyle={{ gap: 9, paddingHorizontal: 20 }}>
-            <AiChip t={t} icon={<Icon.scale size={16} sw={2} color={t.accent} />} label="Scale servings" onPress={() => setSheet('scale')} />
-            <AiChip t={t} icon={<Icon.swap size={16} sw={2} color={t.accent} />} label="Substitute" onPress={() => openSub(null)} />
-            <AiChip t={t} icon={<Icon.sparkle size={16} color={t.accent} />} label={easier ? 'Simplified ✓' : 'Make easier'} active={easier} onPress={toggleEasier} />
+            <AiChip t={t} icon={<Icon.scale size={16} sw={2} color={t.accent} />} label={tr((s) => s.recipe.scale)} onPress={() => setSheet('scale')} />
+            <AiChip t={t} icon={<Icon.swap size={16} sw={2} color={t.accent} />} label={tr((s) => s.recipe.substitute)} onPress={() => openSub(null)} />
+            <AiChip t={t} icon={<Icon.sparkle size={16} color={t.accent} />} label={easier ? tr((s) => s.recipe.simplified) : tr((s) => s.recipe.makeEasier)} active={easier} onPress={toggleEasier} />
           </ScrollView>
 
           <Txt style={{ fontSize: 14.5, lineHeight: 23, color: t.muted, marginBottom: 24 }}>{r.desc}</Txt>
 
           {/* Ingredients */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <Txt style={{ fontWeight: '800', fontSize: 20, color: t.text }}>Ingredients</Txt>
+            <Txt style={{ fontWeight: '800', fontSize: 20, color: t.text }}>{tr((s) => s.recipe.ingredients)}</Txt>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: t.surface2, borderRadius: 999, padding: 4 }}>
               <StepBtn t={t} onPress={() => setServings((s) => Math.max(1, s - 1))}><Icon.minus size={16} sw={2.5} color={t.text} /></StepBtn>
               <Txt style={{ minWidth: 58, textAlign: 'center', fontSize: 13, fontWeight: '700', color: t.text }}>{servings} serv</Txt>
@@ -199,12 +202,12 @@ export default function RecipeDetail() {
           ))}
 
           <PrimaryButton t={t} ghost full icon={<Icon.cart size={18} sw={2} color={t.text} />} style={{ marginTop: 16 }} onPress={() => setSheet('added')}>
-            Add all to grocery list
+            {tr((s) => s.recipe.addAllToList)}
           </PrimaryButton>
 
           {/* Directions */}
           <Txt style={{ fontWeight: '800', fontSize: 20, color: t.text, marginTop: 32, marginBottom: 16 }}>
-            Directions{easier ? <Txt style={{ fontSize: 12.5, color: t.accent, fontWeight: '700' }}>  · Simplified by AI ✨</Txt> : null}
+            {tr((s) => s.recipe.directions)}{easier ? <Txt style={{ fontSize: 12.5, color: t.accent, fontWeight: '700' }}>  · {tr((s) => s.recipe.simplifiedByAi)}</Txt> : null}
           </Txt>
           <View style={{ gap: 16 }}>
             {r.steps.map((s, i) => {
@@ -231,7 +234,7 @@ export default function RecipeDetail() {
 
           {/* Nutrition */}
           <Txt style={{ fontWeight: '800', fontSize: 20, color: t.text, marginTop: 32, marginBottom: 14 }}>
-            Nutrition <Txt style={{ fontSize: 12.5, color: t.muted, fontWeight: '600' }}>per serving</Txt>
+            {tr((s) => s.recipe.nutrition)} <Txt style={{ fontSize: 12.5, color: t.muted, fontWeight: '600' }}>{tr((s) => s.recipe.perServing)}</Txt>
           </Txt>
           <View style={{ backgroundColor: t.surface2, borderRadius: t.radius, padding: 18 }}>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
@@ -285,7 +288,7 @@ export default function RecipeDetail() {
         <Scrim colors={['transparent', t.surface]} />
         <PrimaryButton t={t} full icon={<Icon.play size={17} color={t.accentText} />} style={{ paddingVertical: 17 }}
           onPress={() => router.push({ pathname: '/cook/[id]', params: { id: r.id, servings } })}>
-          Start Cooking
+          {tr((s) => s.recipe.startCooking)}
         </PrimaryButton>
       </View>
 

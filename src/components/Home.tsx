@@ -2,15 +2,19 @@ import React from 'react';
 import { View, Pressable, ScrollView, TextInput } from 'react-native';
 import { Txt } from './Txt';
 import { Icon } from './Icon';
+import { useI18n } from '../i18n';
+import { trEnum } from '../i18n/enums';
 import type { Tokens } from '../theme/tokens';
 import { CATEGORIES } from '../data/seed';
 
 export function SearchBar({
-  t, onPress, placeholder = 'Search any recipe', onFilter, value, onChange, autoFocus, onSubmit,
+  t, onPress, placeholder, onFilter, value, onChange, autoFocus, onSubmit,
 }: {
   t: Tokens; onPress?: () => void; placeholder?: string; onFilter?: () => void;
   value?: string; onChange?: (v: string) => void; autoFocus?: boolean; onSubmit?: () => void;
 }) {
+  const { tr } = useI18n();
+  const ph = placeholder ?? tr((s) => s.home.searchPlaceholder);
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
       <Pressable onPress={onPress} style={{
@@ -26,12 +30,12 @@ export function SearchBar({
             onChangeText={onChange}
             onSubmitEditing={onSubmit}
             returnKeyType="search"
-            placeholder={placeholder}
+            placeholder={ph}
             placeholderTextColor={t.faint}
             style={{ flex: 1, fontSize: 14.5, color: t.text, fontFamily: t.body, paddingVertical: 4 }}
           />
         ) : (
-          <Txt style={{ color: t.faint, fontSize: 14.5 }}>{placeholder}</Txt>
+          <Txt style={{ color: t.faint, fontSize: 14.5 }}>{ph}</Txt>
         )}
       </Pressable>
       <Pressable onPress={onFilter} style={{
@@ -45,6 +49,7 @@ export function SearchBar({
 }
 
 export function CategoryRow({ t, active, onPick }: { t: Tokens; active: string; onPick: (id: string) => void }) {
+  const { lang } = useI18n();
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 18, paddingVertical: 4 }}>
       {CATEGORIES.map((c) => {
@@ -59,7 +64,7 @@ export function CategoryRow({ t, active, onPick }: { t: Tokens; active: string; 
             }}>
               <I size={25} sw={2} color={on ? t.accentText : t.muted} />
             </View>
-            <Txt style={{ fontSize: 12, fontWeight: on ? '700' : '600', color: on ? t.text : t.muted }}>{c.label}</Txt>
+            <Txt style={{ fontSize: 12, fontWeight: on ? '700' : '600', color: on ? t.text : t.muted }}>{trEnum(c.label, lang)}</Txt>
           </Pressable>
         );
       })}

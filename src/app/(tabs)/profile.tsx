@@ -3,6 +3,7 @@ import { View, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useI18n } from '../../i18n';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
@@ -14,6 +15,7 @@ type Tab = 'created' | 'saved' | 'cooked';
 
 export default function Profile() {
   const { t } = useTheme();
+  const { tr } = useI18n();
   const { saved, byId, isSaved, profile, cooked } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -51,26 +53,26 @@ export default function Profile() {
         {([['recipes', p.stats.recipes], ['cookbooks', p.stats.cookbooks], ['followers', p.stats.followers], ['following', p.stats.following]] as const).map(([k, v]) => (
           <View key={k} style={{ alignItems: 'center', flex: 1 }}>
             <Txt style={{ fontSize: 18, fontWeight: '800', color: t.text }}>{compact(v)}</Txt>
-            <Txt style={{ fontSize: 11.5, color: t.muted, textTransform: 'capitalize' }}>{k}</Txt>
+            <Txt style={{ fontSize: 11.5, color: t.muted, textTransform: 'capitalize' }}>{tr((s) => s.profile[k])}</Txt>
           </View>
         ))}
       </View>
 
       <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
-        <PrimaryButton t={t} full icon={<Icon.edit size={16} sw={2} color={t.accentText} />} onPress={() => router.push('/edit-profile')}>Edit profile</PrimaryButton>
-        <PrimaryButton t={t} ghost icon={<Icon.share size={16} sw={2} color={t.text} />}>Share</PrimaryButton>
+        <PrimaryButton t={t} full icon={<Icon.edit size={16} sw={2} color={t.accentText} />} onPress={() => router.push('/edit-profile')}>{tr((s) => s.profile.editProfile)}</PrimaryButton>
+        <PrimaryButton t={t} ghost icon={<Icon.share size={16} sw={2} color={t.text} />}>{tr((s) => s.common.share)}</PrimaryButton>
       </View>
 
       <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: t.border, marginBottom: 18 }}>
-        {([['created', 'Created'], ['saved', 'Saved'], ['cooked', 'Cooked']] as const).map(([k, lbl]) => (
+        {(['created', 'saved', 'cooked'] as const).map((k) => (
           <Pressable key={k} onPress={() => setTab(k)} style={{ flex: 1, paddingVertical: 12, alignItems: 'center' }}>
-            <Txt style={{ fontSize: 14, fontWeight: '700', color: tab === k ? t.text : t.muted }}>{lbl}</Txt>
+            <Txt style={{ fontSize: 14, fontWeight: '700', color: tab === k ? t.text : t.muted }}>{tr((s) => s.profile[k])}</Txt>
             {tab === k ? <View style={{ position: 'absolute', bottom: -1, left: '25%', right: '25%', height: 3, borderRadius: 3, backgroundColor: t.accent }} /> : null}
           </Pressable>
         ))}
       </View>
 
-      {data.length === 0 ? <Txt style={{ textAlign: 'center', color: t.muted, paddingVertical: 40 }}>Nothing here yet.</Txt> : null}
+      {data.length === 0 ? <Txt style={{ textAlign: 'center', color: t.muted, paddingVertical: 40 }}>{tr((s) => s.common.nothingHere)}</Txt> : null}
       <View style={{ gap: 14 }}>
         {rows.map((row, ri) => (
           <View key={ri} style={{ flexDirection: 'row', gap: 14 }}>

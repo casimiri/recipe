@@ -3,6 +3,7 @@ import { View, Pressable, ScrollView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useI18n } from '../../i18n';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
@@ -12,6 +13,7 @@ import { COOKBOOKS } from '../../data/seed';
 
 export default function Cookbooks() {
   const { t } = useTheme();
+  const { tr } = useI18n();
   const { saved, byId, cookbooks, createCookbook } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -31,18 +33,18 @@ export default function Cookbooks() {
     <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text }}>Cookbooks</Txt>
+        <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text }}>{tr((s) => s.cookbooks.title)}</Txt>
         <IconBtn t={t} style={{ backgroundColor: t.accent }} onPress={() => setCreating(true)}><Icon.plus size={22} sw={2.5} color={t.accentText} /></IconBtn>
       </View>
-      <Txt style={{ fontSize: 14, color: t.muted, marginBottom: 22 }}>Your saved recipes, organized.</Txt>
+      <Txt style={{ fontSize: 14, color: t.muted, marginBottom: 22 }}>{tr((s) => s.cookbooks.subtitle)}</Txt>
 
       <Pressable onPress={() => router.push('/cookbook/saved')} style={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: t.radius, backgroundColor: t.accent, marginBottom: 18, boxShadow: `0 10px 26px ${t.withA(t.accent, 0.35)}` }}>
         <View style={{ width: 52, height: 52, borderRadius: 15, backgroundColor: t.withA('#000', 0.12), alignItems: 'center', justifyContent: 'center' }}>
           <Icon.bookmarkFill size={24} color={t.accentText} />
         </View>
         <View style={{ flex: 1 }}>
-          <Txt style={{ fontWeight: '800', fontSize: 16, color: t.accentText }}>All saved</Txt>
-          <Txt style={{ fontSize: 13, color: t.accentText, opacity: 0.85 }}>{saved.length} recipes</Txt>
+          <Txt style={{ fontWeight: '800', fontSize: 16, color: t.accentText }}>{tr((s) => s.cookbooks.allSaved)}</Txt>
+          <Txt style={{ fontSize: 13, color: t.accentText, opacity: 0.85 }}>{tr((s) => s.cookbooks.recipesCount, { count: saved.length })}</Txt>
         </View>
         <Icon.chevR size={22} sw={2.2} color={t.accentText} />
       </Pressable>
@@ -53,7 +55,7 @@ export default function Cookbooks() {
             <CookbookCover recipes={c.recipeIds.slice(0, 4).map(byId)} />
             <View style={{ paddingHorizontal: 13, paddingTop: 11, paddingBottom: 13 }}>
               <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text, marginBottom: 2 }}>{c.name}</Txt>
-              <Txt style={{ fontSize: 12.5, color: t.muted }}>{c.recipeIds.length} recipe{c.recipeIds.length === 1 ? '' : 's'}</Txt>
+              <Txt style={{ fontSize: 12.5, color: t.muted }}>{tr((s) => s.cookbooks.recipesCount, { count: c.recipeIds.length })}</Txt>
             </View>
           </Pressable>
         ))}
@@ -62,19 +64,19 @@ export default function Cookbooks() {
             <CookbookCover recipes={c.cover.map(byId)} />
             <View style={{ paddingHorizontal: 13, paddingTop: 11, paddingBottom: 13 }}>
               <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text, marginBottom: 2 }}>{c.name}</Txt>
-              <Txt style={{ fontSize: 12.5, color: t.muted }}>{c.count} recipes</Txt>
+              <Txt style={{ fontSize: 12.5, color: t.muted }}>{tr((s) => s.cookbooks.recipesCount, { count: c.count })}</Txt>
             </View>
           </Pressable>
         ))}
       </View>
 
-      <Sheet open={creating} onClose={() => { setCreating(false); setName(''); }} t={t} title="New cookbook">
+      <Sheet open={creating} onClose={() => { setCreating(false); setName(''); }} t={t} title={tr((s) => s.recipe.newCookbook)}>
         <TextInput
-          value={name} onChangeText={setName} placeholder="Cookbook name" placeholderTextColor={t.faint}
+          value={name} onChangeText={setName} placeholder={tr((s) => s.cookbooks.namePlaceholder)} placeholderTextColor={t.faint}
           autoFocus returnKeyType="done" onSubmitEditing={create}
           style={{ backgroundColor: t.surface2, borderRadius: t.radiusSm, paddingHorizontal: 16, paddingVertical: 14, fontSize: 16, color: t.text, fontFamily: t.body, marginBottom: 16 }}
         />
-        <PrimaryButton t={t} full disabled={!name.trim()} onPress={create}>Create cookbook</PrimaryButton>
+        <PrimaryButton t={t} full disabled={!name.trim()} onPress={create}>{tr((s) => s.cookbooks.create)}</PrimaryButton>
       </Sheet>
     </ScrollView>
   );

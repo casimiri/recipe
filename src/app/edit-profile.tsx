@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n';
 import { useApp } from '../store/AppState';
 import { useAuth } from '../store/auth';
 import { uploadAvatar } from '../lib/repo';
@@ -13,6 +14,7 @@ import { Avatar, PrimaryButton, IconBtn } from '../components/atoms';
 
 export default function EditProfile() {
   const { t } = useTheme();
+  const { tr } = useI18n();
   const { profile, updateProfile } = useApp();
   const { user } = useAuth();
   const router = useRouter();
@@ -72,7 +74,7 @@ export default function EditProfile() {
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: insets.bottom + 24 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
-          <Txt style={{ fontWeight: '800', fontSize: 23, color: t.text }}>Edit profile</Txt>
+          <Txt style={{ fontWeight: '800', fontSize: 23, color: t.text }}>{tr((s) => s.editProfile.title)}</Txt>
           <IconBtn t={t} onPress={() => router.back()}><Icon.x size={20} sw={2.4} color={t.text} /></IconBtn>
         </View>
 
@@ -85,12 +87,12 @@ export default function EditProfile() {
           </Pressable>
         </View>
 
-        {field('Name', name, setName)}
-        {field('Handle', handle, setHandle, { autoCapitalize: 'none' })}
-        {field('Bio', bio, setBio, { multiline: true })}
+        {field(tr((s) => s.editProfile.name), name, setName)}
+        {field(tr((s) => s.editProfile.handle), handle, setHandle, { autoCapitalize: 'none' })}
+        {field(tr((s) => s.editProfile.bio), bio, setBio, { multiline: true })}
 
         <PrimaryButton t={t} full onPress={save} disabled={busy || !name.trim()} style={{ marginTop: 8, paddingVertical: 16 }}>
-          {busy ? 'Saving…' : 'Save changes'}
+          {busy ? tr((s) => s.editProfile.saving) : tr((s) => s.editProfile.saveChanges)}
         </PrimaryButton>
       </ScrollView>
     </KeyboardAvoidingView>

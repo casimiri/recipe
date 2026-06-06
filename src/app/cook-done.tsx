@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Pressable } from 'react-native';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n';
 import { useApp } from '../store/AppState';
 import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
@@ -9,6 +10,7 @@ import { PrimaryButton } from '../components/atoms';
 
 export default function CookDone() {
   const { t } = useTheme();
+  const { tr } = useI18n();
   const { byId, recipes, logCook } = useApp();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -26,9 +28,9 @@ export default function CookDone() {
       <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: t.accent, alignItems: 'center', justifyContent: 'center', marginBottom: 24, boxShadow: `0 14px 40px ${t.withA(t.accent, 0.4)}` }}>
         <Icon.check size={48} sw={2.6} color={t.accentText} />
       </View>
-      <Txt style={{ fontWeight: '800', fontSize: 28, color: t.text, marginBottom: 10 }}>Nicely done!</Txt>
+      <Txt style={{ fontWeight: '800', fontSize: 28, color: t.text, marginBottom: 10 }}>{tr((s) => s.cookDone.title)}</Txt>
       <Txt style={{ fontSize: 15, color: t.muted, lineHeight: 22, textAlign: 'center', marginBottom: 28 }}>
-        You cooked <Txt style={{ color: t.text, fontWeight: '700' }}>{r.title}</Txt>. How did it turn out?
+        {tr((s) => s.cookDone.body, { title: r.title })}
       </Txt>
       <View style={{ flexDirection: 'row', gap: 10, marginBottom: 32 }}>
         {[1, 2, 3, 4, 5].map((n) => (
@@ -38,8 +40,8 @@ export default function CookDone() {
         ))}
       </View>
       <View style={{ width: '100%', gap: 12 }}>
-        <PrimaryButton t={t} full onPress={() => finish('/(tabs)')}>Back to home</PrimaryButton>
-        <PrimaryButton t={t} ghost full icon={<Icon.share size={17} sw={2} color={t.text} />} onPress={() => finish(`/recipe/${r.id}`)}>Share your cook</PrimaryButton>
+        <PrimaryButton t={t} full onPress={() => finish('/(tabs)')}>{tr((s) => s.cookDone.backHome)}</PrimaryButton>
+        <PrimaryButton t={t} ghost full icon={<Icon.share size={17} sw={2} color={t.text} />} onPress={() => finish(`/recipe/${r.id}`)}>{tr((s) => s.cookDone.shareCook)}</PrimaryButton>
       </View>
     </View>
   );

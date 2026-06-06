@@ -3,6 +3,7 @@ import { View, Pressable, ScrollView, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useI18n } from '../../i18n';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
@@ -12,6 +13,7 @@ import type { GroceryAisle } from '../../data/types';
 
 export default function Grocery() {
   const { t } = useTheme();
+  const { tr } = useI18n();
   const { groceryChecked, toggleGrocery, setGroceryChecked, groceryExtra, addGroceryItem } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -28,7 +30,7 @@ export default function Grocery() {
     allItems.forEach((i) => { (byRec[i.from] = byRec[i.from] || []).push(i); });
     groups = Object.entries(byRec).map(([aisle, items]) => ({ aisle, items }));
   } else {
-    groups = groceryExtra.length ? [...GROCERY, { aisle: 'Added by you', items: groceryExtra }] : GROCERY;
+    groups = groceryExtra.length ? [...GROCERY, { aisle: tr((s) => s.grocery.addedByYou), items: groceryExtra }] : GROCERY;
   }
 
   return (
@@ -36,8 +38,8 @@ export default function Grocery() {
       contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
         <View>
-          <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text }}>Grocery List</Txt>
-          <Txt style={{ fontSize: 13.5, color: t.muted, marginTop: 3 }}>{doneCount} of {total} items checked</Txt>
+          <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text }}>{tr((s) => s.grocery.title)}</Txt>
+          <Txt style={{ fontSize: 13.5, color: t.muted, marginTop: 3 }}>{tr((s) => s.grocery.itemsChecked, { done: doneCount, total })}</Txt>
         </View>
         <IconBtn t={t} onPress={() => router.push('/(tabs)')}><Icon.x size={20} sw={2.2} color={t.text} /></IconBtn>
       </View>
@@ -47,9 +49,9 @@ export default function Grocery() {
       </View>
 
       <View style={{ flexDirection: 'row', gap: 6, backgroundColor: t.surface2, borderRadius: 999, padding: 4, marginBottom: 22, alignSelf: 'flex-start' }}>
-        {([['aisle', 'By aisle'], ['recipe', 'By recipe']] as const).map(([k, lbl]) => (
+        {(['aisle', 'recipe'] as const).map((k) => (
           <Pressable key={k} onPress={() => setGroupBy(k)} style={{ paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, backgroundColor: groupBy === k ? t.surface : 'transparent', ...(groupBy === k ? { boxShadow: t.shadow } : {}) }}>
-            <Txt style={{ fontSize: 13, fontWeight: '700', color: groupBy === k ? t.text : t.muted }}>{lbl}</Txt>
+            <Txt style={{ fontSize: 13, fontWeight: '700', color: groupBy === k ? t.text : t.muted }}>{k === 'aisle' ? tr((s) => s.grocery.byAisle) : tr((s) => s.grocery.byRecipe)}</Txt>
           </Pressable>
         ))}
       </View>
@@ -77,14 +79,14 @@ export default function Grocery() {
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 }}>
         <View style={{ width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: t.borderStrong, borderStyle: 'dashed' }} />
-        <TextInput value={adding} onChangeText={setAdding} placeholder="Add an item…" placeholderTextColor={t.faint}
+        <TextInput value={adding} onChangeText={setAdding} placeholder={tr((s) => s.grocery.addPlaceholder)} placeholderTextColor={t.faint}
           onSubmitEditing={() => { if (adding.trim()) { addGroceryItem(adding); setAdding(''); } }}
           style={{ flex: 1, fontSize: 15, color: t.text, fontFamily: t.body, paddingVertical: 6 }} />
       </View>
 
       <View style={{ flexDirection: 'row', gap: 12 }}>
-        <PrimaryButton t={t} ghost full onPress={() => setGroceryChecked([])}>Clear checked</PrimaryButton>
-        <PrimaryButton t={t} full icon={<Icon.cart size={18} sw={2} color={t.accentText} />} onPress={() => router.push('/checkout')}>Order delivery</PrimaryButton>
+        <PrimaryButton t={t} ghost full onPress={() => setGroceryChecked([])}>{tr((s) => s.grocery.clearChecked)}</PrimaryButton>
+        <PrimaryButton t={t} full icon={<Icon.cart size={18} sw={2} color={t.accentText} />} onPress={() => router.push('/checkout')}>{tr((s) => s.grocery.orderDelivery)}</PrimaryButton>
       </View>
     </ScrollView>
   );

@@ -3,6 +3,8 @@ import { View, Pressable, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
+import { useI18n } from '../i18n';
+import { trEnum } from '../i18n/enums';
 import { useApp } from '../store/AppState';
 import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
@@ -15,6 +17,7 @@ const TRENDING = ['Crepes', 'Chicken curry', 'Overnight oats', 'Matcha', 'Tacos'
 
 export default function Search() {
   const { t } = useTheme();
+  const { tr, lang } = useI18n();
   const { recipes, isSaved, toggleSave, diet, recentSearches, addRecentSearch, clearRecentSearches } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -50,7 +53,7 @@ export default function Search() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
         {active.length > 0 ? (
           <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-            {active.map((f) => <Tag key={f} t={t} active onPress={() => toggle(f)}>{`${f}  ✕`}</Tag>)}
+            {active.map((f) => <Tag key={f} t={t} active onPress={() => toggle(f)}>{`${trEnum(f, lang)}  ✕`}</Tag>)}
           </View>
         ) : null}
 
@@ -58,17 +61,17 @@ export default function Search() {
           <View>
             {recentSearches.length > 0 ? (
               <>
-                <SectionHead title="Recent" action="Clear" onAction={clearRecentSearches} t={t} style={{ marginBottom: 12 }} />
+                <SectionHead title={tr((s) => s.search.recent)} action={tr((s) => s.common.clear)} onAction={clearRecentSearches} t={t} style={{ marginBottom: 12 }} />
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 26 }}>
                   {recentSearches.map((rs) => <Tag key={rs} t={t} onPress={() => setQ(rs)}>{rs}</Tag>)}
                 </View>
               </>
             ) : null}
-            <SectionHead title="Trending searches" t={t} style={{ marginBottom: 12 }} />
+            <SectionHead title={tr((s) => s.search.trending)} t={t} style={{ marginBottom: 12 }} />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 26 }}>
-              {TRENDING.map((tr) => <Tag key={tr} t={t} onPress={() => setQ(tr)}>{tr}</Tag>)}
+              {TRENDING.map((term) => <Tag key={term} t={t} onPress={() => setQ(term)}>{term}</Tag>)}
             </View>
-            <SectionHead title="Browse by category" t={t} style={{ marginBottom: 12 }} />
+            <SectionHead title={tr((s) => s.search.browse)} t={t} style={{ marginBottom: 12 }} />
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
               {CATEGORIES.filter((c) => c.id !== 'popular').map((c) => {
                 const I = Icon[c.icon] || Icon.flame;
@@ -79,7 +82,7 @@ export default function Search() {
                     <Scrim colors={['rgba(0,0,0,0.38)', 'rgba(0,0,0,0.38)']} />
                     <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 14 }}>
                       <I size={20} sw={2} color="#fff" />
-                      <Txt style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>{c.label}</Txt>
+                      <Txt style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>{trEnum(c.label, lang)}</Txt>
                     </View>
                   </Pressable>
                 );
@@ -88,29 +91,29 @@ export default function Search() {
           </View>
         ) : (
           <View>
-            <Txt style={{ fontSize: 13, color: t.muted, marginBottom: 14, fontWeight: '600' }}>{results.length} recipes</Txt>
+            <Txt style={{ fontSize: 13, color: t.muted, marginBottom: 14, fontWeight: '600' }}>{tr((s) => s.search.resultsCount, { count: results.length })}</Txt>
             <View style={{ gap: 6 }}>
               {results.map((r) => (
                 <RecipeCard key={r.id} recipe={r} t={t} variant="compact" onOpen={(id) => { if (q.trim()) addRecentSearch(q); router.push(`/recipe/${id}`); }} onSave={toggleSave} saved={isSaved(r.id)} />
               ))}
-              {results.length === 0 ? <Txt style={{ textAlign: 'center', color: t.muted, paddingVertical: 40 }}>No recipes match those filters.</Txt> : null}
+              {results.length === 0 ? <Txt style={{ textAlign: 'center', color: t.muted, paddingVertical: 40 }}>{tr((s) => s.search.noResults)}</Txt> : null}
             </View>
           </View>
         )}
       </ScrollView>
 
-      <Sheet open={showFilter} onClose={() => setShowFilter(false)} t={t} title="Filters">
+      <Sheet open={showFilter} onClose={() => setShowFilter(false)} t={t} title={tr((s) => s.search.filters)}>
         {Object.entries(FILTERS).map(([group, opts]) => (
           <View key={group} style={{ marginBottom: 18 }}>
             <Txt style={{ fontSize: 12.5, fontWeight: '700', color: t.muted, textTransform: 'capitalize', marginBottom: 9 }}>{group}</Txt>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {opts.map((o) => <Tag key={o} t={t} active={active.includes(o)} onPress={() => toggle(o)}>{o}</Tag>)}
+              {opts.map((o) => <Tag key={o} t={t} active={active.includes(o)} onPress={() => toggle(o)}>{trEnum(o, lang)}</Tag>)}
             </View>
           </View>
         ))}
         <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-          <PrimaryButton t={t} ghost full onPress={() => setActive([])}>Clear all</PrimaryButton>
-          <PrimaryButton t={t} full onPress={() => setShowFilter(false)}>{`Show ${results.length}`}</PrimaryButton>
+          <PrimaryButton t={t} ghost full onPress={() => setActive([])}>{tr((s) => s.common.clearAll)}</PrimaryButton>
+          <PrimaryButton t={t} full onPress={() => setShowFilter(false)}>{tr((s) => s.search.showResults, { count: results.length })}</PrimaryButton>
         </View>
       </Sheet>
     </View>

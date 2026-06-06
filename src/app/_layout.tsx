@@ -14,6 +14,7 @@ import {
 } from '@expo-google-fonts/plus-jakarta-sans';
 
 import { ThemeProvider, useTheme } from '../theme/ThemeProvider';
+import { I18nProvider } from '../i18n';
 import { AuthProvider } from '../store/auth';
 import { AppStateProvider } from '../store/AppState';
 
@@ -63,11 +64,13 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
-          <AuthProvider>
-            <AppStateProvider>
-              <RootStack />
-            </AppStateProvider>
-          </AuthProvider>
+          <I18nProvider>
+            <AuthProvider>
+              <AppStateProvider>
+                <RootStack />
+              </AppStateProvider>
+            </AuthProvider>
+          </I18nProvider>
         </ThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

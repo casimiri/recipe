@@ -7,6 +7,8 @@ import {
   DEFAULT_STATE, UserState, ProfileRow, CookLog, UserCookbook, AppReminder,
 } from '../lib/repo';
 import { RECIPES as SEED_RECIPES, PROFILE } from '../data/seed';
+import { useI18n } from '../i18n';
+import { localizeRecipe } from '../i18n/recipes';
 import { useAuth } from './auth';
 import type { Recipe, WeekPlan, MealSlot, GroceryItem, Profile } from '../data/types';
 
@@ -53,6 +55,7 @@ const Ctx = createContext<AppCtx | null>(null);
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const { lang } = useI18n();
   const [ready, setReady] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>(SEED_RECIPES);
   const [state, setState] = useState<UserState>(DEFAULT_STATE);
@@ -110,10 +113,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const update = (patch: Partial<UserState>) => setState((s) => ({ ...s, ...patch }));
 
+  // Localize the catalog's free-text fields for the active language. Enum-ish
+  // fields (cuisine/meal/difficulty/tags) stay English here so the search and
+  // category filters keep matching; screens localize those labels via trEnum.
+  const localizedRecipes = useMemo(() => recipes.map((r) => localizeRecipe(r, lang)), [recipes, lang]);
+
   const value: AppCtx = useMemo(() => ({
     ready,
-    recipes,
-    byId: (id) => recipes.find((r) => r.id === id),
+    recipes: localizedRecipes,
+    byId: (id) => localizedRecipes.find((r) => r.id === id),
     saved: state.saved,
     isSaved: (id) => state.saved.includes(id),
     toggleSave: (id) =>
@@ -212,7 +220,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       }));
       if (user?.id) await upsertProfile(user.id, patch);
     },
-  }), [ready, recipes, state, unread, user?.id, profile]);
+  }), [ready, localizedRecipes, state, unread, user?.id, profile]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

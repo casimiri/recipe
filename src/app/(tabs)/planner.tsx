@@ -3,6 +3,8 @@ import { View, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useI18n } from '../../i18n';
+import { trEnum } from '../../i18n/enums';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
@@ -15,7 +17,9 @@ const TODAY = 'Wed';
 
 export default function Planner() {
   const { t } = useTheme();
+  const { tr, lang } = useI18n();
   const { plan, addToPlan, byId, recipes } = useApp();
+  const mealLabel = (m: MealSlot) => tr((s) => s.planner[m]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [day, setDay] = useState(TODAY);
@@ -29,8 +33,8 @@ export default function Planner() {
       contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: 24 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 18 }}>
         <View>
-          <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text }}>Meal Plan</Txt>
-          <Txt style={{ fontSize: 13.5, color: t.muted, marginTop: 3 }}>This week · {plannedCount} meals planned</Txt>
+          <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text }}>{tr((s) => s.planner.title)}</Txt>
+          <Txt style={{ fontSize: 13.5, color: t.muted, marginTop: 3 }}>{tr((s) => s.planner.summary, { count: plannedCount })}</Txt>
         </View>
         <IconBtn t={t} onPress={() => router.push('/(tabs)/grocery')} style={{ backgroundColor: t.accentSoft }}>
           <Icon.cart size={21} sw={2} color={t.accent} />
@@ -58,7 +62,7 @@ export default function Planner() {
           return (
             <View key={m}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 9 }}>
-                <Txt style={{ fontWeight: '800', fontSize: 16, color: t.text, textTransform: 'capitalize' }}>{m}</Txt>
+                <Txt style={{ fontWeight: '800', fontSize: 16, color: t.text, textTransform: 'capitalize' }}>{mealLabel(m)}</Txt>
                 <View style={{ flex: 1, height: 1, backgroundColor: t.border }} />
               </View>
               {r ? (
@@ -78,7 +82,7 @@ export default function Planner() {
               ) : (
                 <Pressable onPress={() => setPicker({ day, meal: m })} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 20, borderRadius: t.radius, borderWidth: 2, borderColor: t.borderStrong, borderStyle: 'dashed' }}>
                   <Icon.plus size={18} sw={2.5} color={t.muted} />
-                  <Txt style={{ color: t.muted, fontSize: 14, fontWeight: '600' }}>Add {m}</Txt>
+                  <Txt style={{ color: t.muted, fontSize: 14, fontWeight: '600' }}>{tr((s) => s.planner.addSlot, { meal: mealLabel(m) })}</Txt>
                 </Pressable>
               )}
             </View>
@@ -87,10 +91,10 @@ export default function Planner() {
       </View>
 
       <PrimaryButton t={t} full icon={<Icon.cart size={18} sw={2} color={t.accentText} />} onPress={() => router.push('/(tabs)/grocery')}>
-        Generate grocery list
+        {tr((s) => s.planner.generateList)}
       </PrimaryButton>
 
-      <Sheet open={!!picker} onClose={() => setPicker(null)} t={t} title={picker ? `Add to ${picker.meal}` : ''}>
+      <Sheet open={!!picker} onClose={() => setPicker(null)} t={t} title={picker ? tr((s) => s.planner.addTo, { meal: mealLabel(picker.meal) }) : ''}>
         <View style={{ gap: 6 }}>
           {recipes.map((r) => (
             <Pressable key={r.id} onPress={() => { if (picker) addToPlan(picker.day, picker.meal, r.id); setPicker(null); }}
@@ -98,7 +102,7 @@ export default function Planner() {
               <Dish src={r.img} alt={r.title} radius={10} style={{ width: 56, height: 56 }} />
               <View style={{ flex: 1 }}>
                 <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text }}>{r.title}</Txt>
-                <Txt style={{ fontSize: 12.5, color: t.muted }}>{r.cuisine} · {r.time} min</Txt>
+                <Txt style={{ fontSize: 12.5, color: t.muted }}>{trEnum(r.cuisine, lang)} · {r.time} min</Txt>
               </View>
               <Icon.plus size={20} sw={2.5} color={t.accent} />
             </Pressable>

@@ -3,6 +3,8 @@ import { View, Pressable, StyleProp, ViewStyle } from 'react-native';
 import { Txt } from './Txt';
 import { Icon } from './Icon';
 import { Dish, RatingBadge, StatChip } from './atoms';
+import { useI18n } from '../i18n';
+import { trEnum } from '../i18n/enums';
 import type { Tokens } from '../theme/tokens';
 import type { Recipe } from '../data/types';
 
@@ -14,6 +16,8 @@ export function RecipeCard({
   recipe: Recipe; t: Tokens; variant?: Variant; tall?: boolean; wide?: boolean;
   onOpen: (id: string) => void; onSave?: (id: string) => void; saved?: boolean;
 }) {
+  const { lang } = useI18n();
+  const cuisine = trEnum(r.cuisine, lang);
   const TimePill = (
     <View style={{
       position: 'absolute', top: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 4,
@@ -43,7 +47,7 @@ export function RecipeCard({
         <Dish src={r.img} alt={r.title} radius={t.radiusSm} style={{ width: 88, height: 88 }} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Txt style={{ fontWeight: '700', fontSize: 15, color: t.text, marginBottom: 3 }} numberOfLines={2}>{r.title}</Txt>
-          <Txt style={{ fontSize: 12.5, color: t.muted, marginBottom: 7 }}>{r.cuisine}</Txt>
+          <Txt style={{ fontSize: 12.5, color: t.muted, marginBottom: 7 }}>{cuisine}</Txt>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <StatChip icon={<Icon.clock size={14} sw={2.2} color={t.accent} />} value={`${r.time}m`} t={t} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
@@ -73,7 +77,7 @@ export function RecipeCard({
         <View style={{ paddingHorizontal: 13, paddingTop: 11, paddingBottom: 13 }}>
           <Txt style={{ fontWeight: '700', fontSize: 15, color: t.text, marginBottom: 4 }} numberOfLines={2}>{r.title}</Txt>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Txt style={{ fontSize: 12.5, color: t.muted }}>{r.cuisine}</Txt>
+            <Txt style={{ fontSize: 12.5, color: t.muted }}>{cuisine}</Txt>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
               <Icon.star size={13} color={t.star} />
               <Txt style={{ color: t.text, fontSize: 13, fontWeight: '700' }}>{r.rating}</Txt>
@@ -95,7 +99,7 @@ export function RecipeCard({
       </Dish>
       <View style={{ paddingTop: 9, paddingHorizontal: 2 }}>
         <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text, marginBottom: 2 }} numberOfLines={1}>{r.title}</Txt>
-        <Txt style={{ fontSize: 12.5, color: t.muted }}>{r.cuisine}</Txt>
+        <Txt style={{ fontSize: 12.5, color: t.muted }}>{cuisine}</Txt>
       </View>
     </Pressable>
   );
