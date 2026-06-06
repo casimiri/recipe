@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -140,7 +140,8 @@ export default function Settings() {
           <Row icon="sparkle" label={tr((s) => s.pro.title)} t={t}
             right={<Txt style={{ fontSize: 13.5, fontWeight: pro ? '700' : '400', color: pro ? t.accent : t.muted }}>{pro ? (proRenewsAt ? tr((s) => s.pro.until, { date: new Date(proRenewsAt).toLocaleDateString() }) : tr((s) => s.pro.active)) : tr((s) => s.pro.manageFree, { price: formatPrice(priceCents, currency) })}</Txt>}
             onPress={() => setPayOpen(true)} />
-          <Row icon="share" label={tr((s) => s.settings.invite)} t={t} last />
+          <Row icon="share" label={tr((s) => s.settings.invite)} t={t}
+            onPress={() => Share.share({ message: tr((s) => s.settings.inviteMessage) }).catch(() => {})} last />
         </View>
       </View>
 

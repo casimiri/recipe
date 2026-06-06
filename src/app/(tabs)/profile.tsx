@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, ScrollView } from 'react-native';
+import { View, Pressable, ScrollView, Share } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -58,7 +58,8 @@ export default function Profile() {
 
       <View style={{ flexDirection: 'row', gap: 12, marginBottom: 24 }}>
         <PrimaryButton t={t} full icon={<Icon.edit size={16} sw={2} color={t.accentText} />} onPress={() => router.push('/edit-profile')}>{tr((s) => s.profile.editProfile)}</PrimaryButton>
-        <PrimaryButton t={t} ghost icon={<Icon.share size={16} sw={2} color={t.text} />}>{tr((s) => s.common.share)}</PrimaryButton>
+        <PrimaryButton t={t} ghost icon={<Icon.share size={16} sw={2} color={t.text} />}
+          onPress={() => Share.share({ message: tr((s) => s.profile.shareMessage) }).catch(() => {})}>{tr((s) => s.common.share)}</PrimaryButton>
       </View>
 
       <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: t.border, marginBottom: 18 }}>

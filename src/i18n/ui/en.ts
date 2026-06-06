@@ -234,6 +234,7 @@ export const en = {
     saved: 'Saved',
     cooked: 'Cooked',
     cookedOn: 'Cooked {date}',
+    shareMessage: 'Check out my recipes on Recipe-Snap — https://recipe-snap.app',
   },
   editProfile: {
     title: 'Edit profile',
@@ -268,6 +269,7 @@ export const en = {
     upgrade: 'Upgrade to Pro',
     aiImports: 'AI imports',
     invite: 'Invite friends',
+    inviteMessage: 'Join me on Recipe-Snap to import, plan and cook recipes — https://recipe-snap.app',
     signOut: 'Sign out',
     chooseLanguage: 'Choose language',
   },

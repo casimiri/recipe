@@ -233,6 +233,7 @@ export const de: UIStrings = {
     saved: 'Gespeichert',
     cooked: 'Gekocht',
     cookedOn: 'Gekocht am {date}',
+    shareMessage: 'Schau dir meine Rezepte auf Recipe-Snap an — https://recipe-snap.app',
   },
   editProfile: {
     title: 'Profil bearbeiten',
@@ -267,6 +268,7 @@ export const de: UIStrings = {
     upgrade: 'Auf Pro upgraden',
     aiImports: 'KI-Importe',
     invite: 'Freunde einladen',
+    inviteMessage: 'Mach mit bei Recipe-Snap – Rezepte importieren, planen und kochen — https://recipe-snap.app',
     signOut: 'Abmelden',
     chooseLanguage: 'Sprache wählen',
   },
