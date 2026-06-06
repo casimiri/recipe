@@ -194,6 +194,11 @@ supabase functions deploy ai-tools
   recipe shows a relevant picture, not a stock one).
 - **`ai-tools`** — returns ingredient substitutions or simplified step text.
 
+Both functions accept a `lang` field (the active UI language) and respond in it:
+`import-recipe` writes the recipe's free text (title/desc/ingredients/steps) in
+that language while keeping enum-ish fields (meal/difficulty/cuisine/tags) in
+English so filtering still works; `ai-tools` answers in the language too.
+
 The app calls these via `supabase.functions.invoke(...)` in `src/lib/ai.ts`, and
 gracefully falls back to local results if they're unavailable.
 
