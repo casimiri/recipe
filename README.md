@@ -212,6 +212,24 @@ shared `_shared/billing.ts` helper) — guests are gated client-side instead.
 `update public.app_config set price_cents = 299, free_ai_quota = 10 where id = 'default';`
 (run via the SQL editor or the Management API — see the `recipe-snap-ops` skill).
 
+**Cancelling a subscription.** The mock has no auto-renew, so a subscription
+simply **lapses one month after purchase** (once `subscriptions.renews_at` is in
+the past the user reverts to the free tier on next load). There is no in-app
+cancel button — to cancel/revoke a user's Pro in the mock, act on the
+`subscriptions` row in Supabase (SQL editor or Management API):
+
+```sql
+-- revoke Pro immediately
+update public.subscriptions set pro = false, renews_at = null where user_id = '<uid>';
+```
+
+(To instead let it expire at the end of the paid month, do nothing — without
+auto-renew it lapses on its own when `renews_at` passes.)
+
+With real **store subscriptions** the user cancels in the **App Store / Play
+Store** (the stores require it, not the app); a RevenueCat/store webhook would
+then clear `subscriptions.pro` here — the same row the mock writes.
+
 The app calls these via `supabase.functions.invoke(...)` in `src/lib/ai.ts`, and
 gracefully falls back to local results if they're unavailable.
 
