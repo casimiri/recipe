@@ -142,6 +142,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const update = (patch: Partial<UserState>) => setState((s) => ({ ...s, ...patch }));
 
+  // Append a real activity entry (cooked/planned/saved/imported) to the feed.
+  const logActivity = (kind: AppReminder['kind'], recipe: string) =>
+    setState((s) => ({ ...s, reminders: [{ id: 'rem' + Date.now(), at: Date.now(), kind, recipe }, ...s.reminders].slice(0, 50) }));
+
   // Localize the catalog's free-text fields for the active language. Enum-ish
   // fields (cuisine/meal/difficulty/tags) stay English here so the search and
   // category filters keep matching; screens localize those labels via trEnum.
@@ -202,6 +206,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         // user's own — surface it in the Created tab + recipes stat.
         created: s.created.includes(r.id) ? s.created : [r.id, ...s.created],
       }));
+      logActivity('import', r.id);
       await addRecipe(r, user?.id);
     },
     // Delete a recipe from the user's Created collection. If it's an owned
@@ -231,8 +236,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     },
     plan: state.plan,
     setPlan: (p) => update({ plan: p }),
-    addToPlan: (day, meal, id) =>
-      setState((s) => ({ ...s, plan: { ...s.plan, [day]: { ...s.plan[day], [meal]: id } } })),
+    addToPlan: (day, meal, id) => {
+      setState((s) => ({ ...s, plan: { ...s.plan, [day]: { ...s.plan[day], [meal]: id } } }));
+      if (id) logActivity('plan', id);
+    },
     mealReminders: state.mealReminders,
     setMealReminders: (v) => update({ mealReminders: v }),
     groceryChecked: state.groceryChecked,
@@ -261,11 +268,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     cooked: state.cooked,
     // Record a finished cook; most recent first, de-duped so re-cooking a
     // recipe moves it to the front and updates its rating.
-    logCook: (id, rating) =>
+    logCook: (id, rating) => {
       setState((s) => ({
         ...s,
         cooked: [{ id, rating, at: Date.now() }, ...s.cooked.filter((c) => c.id !== id)],
-      })),
+      }));
+      logActivity('cooked', id);
+    },
     // Re-rate an existing cook in place (keeps its date + position).
     rateCook: (id, rating) =>
       setState((s) => ({
@@ -282,14 +291,16 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({ ...s, cookbooks: [{ id, name: name.trim(), recipeIds: [] }, ...s.cookbooks] }));
       return id;
     },
-    addToCookbook: (cookbookId, recipeId) =>
+    addToCookbook: (cookbookId, recipeId) => {
       setState((s) => ({
         ...s,
         cookbooks: s.cookbooks.map((c) =>
           c.id === cookbookId && !c.recipeIds.includes(recipeId)
             ? { ...c, recipeIds: [recipeId, ...c.recipeIds] }
             : c),
-      })),
+      }));
+      logActivity('save', recipeId);
+    },
     removeFromCookbook: (cookbookId, recipeId) =>
       setState((s) => ({
         ...s,

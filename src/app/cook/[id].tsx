@@ -130,7 +130,7 @@ export default function CookMode() {
             seconds={step.timer}
             t={t}
             body={tr((s) => s.notifications.timerFinished, { title: r.title })}
-            onDone={() => addReminder({ kind: 'cooked', text: tr((s) => s.notifications.timerFinished, { title: r.title }), recipe: r.id })}
+            onDone={() => addReminder({ kind: 'timer', text: tr((s) => s.notifications.timerFinished, { title: r.title }), recipe: r.id })}
           />
         ) : null}
       </ScrollView>

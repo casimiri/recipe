@@ -18,14 +18,6 @@ import { FILTERS } from '../data/seed';
 import { ACCENTS } from '../theme/tokens';
 import type { Tokens } from '../theme/tokens';
 
-function Toggle({ value, onPress, t }: { value: boolean; onPress: () => void; t: Tokens }) {
-  return (
-    <Pressable onPress={onPress} style={{ width: 48, height: 28, borderRadius: 999, backgroundColor: value ? t.accent : t.borderStrong, justifyContent: 'center' }}>
-      <View style={{ position: 'absolute', top: 3, left: value ? 23 : 3, width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.3)' }} />
-    </Pressable>
-  );
-}
-
 function Row({ icon, label, t, right, onPress, last }: { icon: keyof typeof Icon; label: string; t: Tokens; right?: React.ReactNode; onPress?: () => void; last?: boolean }) {
   const I = Icon[icon];
   return (
@@ -40,7 +32,7 @@ function Row({ icon, label, t, right, onPress, last }: { icon: keyof typeof Icon
 }
 
 export default function Settings() {
-  const { t, accent, isDark, setAccent, toggleDark } = useTheme();
+  const { t, accent, darkPref, setAccent, setDarkPref } = useTheme();
   const { tr, lang, setLang } = useI18n();
   const { configured, signOut } = useAuth();
   const { diet, setDiet, units, setUnits, profile, saved, byId, pro, proRenewsAt, priceCents, currency } = useApp();
@@ -88,12 +80,23 @@ export default function Settings() {
       <View style={{ marginBottom: 24 }}>
         <Txt style={sectionLabel}>{tr((s) => s.settings.appearance)}</Txt>
         <View style={card}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 15, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: t.border }}>
-            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: t.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-              <Icon.moon size={19} sw={2} color={t.accent} />
+          <View style={{ paddingVertical: 15, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: t.border }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 13, marginBottom: 12 }}>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: t.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon.moon size={19} sw={2} color={t.accent} />
+              </View>
+              <Txt style={{ flex: 1, fontSize: 15, color: t.text, fontWeight: '500' }}>{tr((s) => s.settings.darkMode)}</Txt>
             </View>
-            <Txt style={{ flex: 1, fontSize: 15, color: t.text, fontWeight: '500' }}>{tr((s) => s.settings.darkMode)}</Txt>
-            <Toggle value={isDark} onPress={toggleDark} t={t} />
+            <View style={{ flexDirection: 'row', backgroundColor: t.surface2, borderRadius: 999, padding: 4, gap: 4 }}>
+              {([['system', 'themeSystem'], ['light', 'themeLight'], ['dark', 'themeDark']] as const).map(([mode, key]) => {
+                const on = darkPref === mode;
+                return (
+                  <Pressable key={mode} onPress={() => setDarkPref(mode)} style={{ flex: 1, paddingVertical: 9, borderRadius: 999, alignItems: 'center', backgroundColor: on ? t.surface : 'transparent', ...(on ? { boxShadow: t.shadow } : {}) }}>
+                    <Txt style={{ fontSize: 13, fontWeight: '700', color: on ? t.text : t.muted }}>{tr((s) => s.settings[key])}</Txt>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
           <View style={{ paddingVertical: 15, paddingHorizontal: 16 }}>
             <Txt style={{ fontSize: 15, color: t.text, fontWeight: '500', marginBottom: 12 }}>{tr((s) => s.settings.accentColour)}</Txt>

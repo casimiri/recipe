@@ -21,11 +21,12 @@ export interface UserCookbook {
   recipeIds: string[];
 }
 
-/** An app-generated notification (e.g. a finished cook timer), newest first. */
+/** An app-generated activity/notification entry, newest first. */
 export interface AppReminder {
   id: string;
-  kind: 'cooked' | 'plan';
-  text: string;
+  kind: 'cooked' | 'plan' | 'save' | 'import' | 'timer';
+  /** Optional pre-rendered text (cook timer); otherwise derived from kind + recipe. */
+  text?: string;
   recipe?: string;
   at: number;
 }
@@ -268,11 +269,17 @@ export async function uploadAvatar(userId: string, base64: string): Promise<stri
   try {
     const clean = base64.includes(',') ? base64.split(',')[1] : base64;
     const bytes = Uint8Array.from(atob(clean), (c) => c.charCodeAt(0));
-    const path = `${userId}/avatar-${Date.now()}.jpg`;
+    const file = `avatar-${Date.now()}.jpg`;
+    const path = `${userId}/${file}`;
     const { error } = await supabase.storage
       .from('avatars')
       .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
     if (error) return null;
+    // Remove the user's previous avatars so the folder doesn't grow unbounded.
+    supabase.storage.from('avatars').list(userId).then(({ data }) => {
+      const stale = (data ?? []).filter((o) => o.name !== file).map((o) => `${userId}/${o.name}`);
+      if (stale.length) supabase!.storage.from('avatars').remove(stale).then(() => {}, () => {});
+    }, () => {});
     return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl ?? null;
   } catch {
     return null;
