@@ -32,6 +32,7 @@ interface AppCtx {
   toggleGrocery: (id: string) => void;
   groceryExtra: GroceryItem[];
   addGroceryItem: (name: string) => void;
+  removeGroceryItem: (id: string) => void;
   tastes: string[];
   setTastes: (t: string[]) => void;
   cooked: CookLog[];
@@ -221,6 +222,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({
         ...s,
         groceryExtra: [...s.groceryExtra, { id: 'x' + Date.now(), name: name.trim(), qty: '1', from: 'Added by you' }],
+      })),
+    removeGroceryItem: (id) =>
+      setState((s) => ({
+        ...s,
+        groceryExtra: s.groceryExtra.filter((g) => g.id !== id),
+        groceryChecked: s.groceryChecked.filter((x) => x !== id),
       })),
     tastes: state.tastes,
     setTastes: (t) => update({ tastes: t }),

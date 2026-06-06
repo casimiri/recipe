@@ -14,7 +14,8 @@ import type { GroceryAisle } from '../../data/types';
 export default function Grocery() {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { groceryChecked, toggleGrocery, setGroceryChecked, groceryExtra, addGroceryItem } = useApp();
+  const { groceryChecked, toggleGrocery, setGroceryChecked, groceryExtra, addGroceryItem, removeGroceryItem } = useApp();
+  const extraIds = new Set(groceryExtra.map((g) => g.id));
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [groupBy, setGroupBy] = useState<'aisle' | 'recipe'>('aisle');
@@ -70,7 +71,13 @@ export default function Grocery() {
                   <Txt style={{ fontSize: 15, fontWeight: '600', color: t.text, textDecorationLine: on ? 'line-through' : 'none' }}>{item.name}</Txt>
                   {groupBy === 'aisle' ? <Txt style={{ fontSize: 12, color: t.faint }}>{item.from}</Txt> : null}
                 </View>
-                <Txt style={{ fontSize: 13.5, color: t.muted, fontWeight: '600' }}>{item.qty}</Txt>
+                {extraIds.has(item.id) ? (
+                  <Pressable onPress={() => removeGroceryItem(item.id)} hitSlop={10} style={{ padding: 4 }}>
+                    <Icon.x size={18} sw={2.2} color={t.faint} />
+                  </Pressable>
+                ) : (
+                  <Txt style={{ fontSize: 13.5, color: t.muted, fontWeight: '600' }}>{item.qty}</Txt>
+                )}
               </Pressable>
             );
           })}
