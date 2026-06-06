@@ -268,6 +268,20 @@ export const en = {
     signOut: 'Sign out',
     chooseLanguage: 'Choose language',
   },
+  pro: {
+    title: 'Recipe-Snap Pro',
+    tagline: 'Unlimited AI, every month.',
+    benefitImports: 'Unlimited AI recipe imports',
+    benefitTools: 'Unlimited Substitute & Make-easier',
+    benefitCancel: 'Cancel anytime',
+    cta: 'Go Pro — {price}/mo',
+    processing: 'Processing…',
+    active: 'Pro active',
+    limitTitle: 'Free AI limit reached',
+    limitBody: 'You’ve used all {count} free AI actions this month. Go Pro for unlimited AI.',
+    aiLeft: '{count} free AI left',
+    manageFree: '{price}/mo',
+  },
 };
 
 export type UIStrings = typeof en;

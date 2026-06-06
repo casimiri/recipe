@@ -51,6 +51,12 @@ export interface UserState {
   reminders: AppReminder[];
   /** Timestamp the notifications screen was last viewed (drives the unread badge). */
   notifsSeenAt: number;
+  /** Recipe-Snap Pro (reconciled from the server for signed-in users). */
+  pro: boolean;
+  /** AI actions used in `aiPeriodKey` (free-tier quota counter). */
+  aiUsed: number;
+  /** The 'YYYY-MM' period `aiUsed` applies to; usage resets when it rolls over. */
+  aiPeriodKey: string;
 }
 
 export const DEFAULT_STATE: UserState = {
@@ -72,6 +78,9 @@ export const DEFAULT_STATE: UserState = {
   created: ['pasta', 'oats'],
   reminders: [],
   notifsSeenAt: 0,
+  pro: false,
+  aiUsed: 0,
+  aiPeriodKey: '',
 };
 
 const GUEST = 'guest';
@@ -254,4 +263,69 @@ export async function uploadAvatar(userId: string, base64: string): Promise<stri
   } catch {
     return null;
   }
+}
+
+// ── Billing ────────────────────────────────────────────────
+export interface BillingConfig {
+  priceCents: number;
+  currency: string;
+  freeAiQuota: number;
+}
+
+/** The current month as 'YYYY-MM' — the window the AI quota resets on. */
+export function aiPeriod(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+
+const DEFAULT_BILLING: BillingConfig = { priceCents: 199, currency: 'EUR', freeAiQuota: 5 };
+
+/** Read the admin-configurable price + free AI quota (world-readable). */
+export async function getBillingConfig(): Promise<BillingConfig> {
+  if (!isSupabaseConfigured || !supabase) return DEFAULT_BILLING;
+  try {
+    const { data } = await supabase
+      .from('app_config')
+      .select('price_cents, currency, free_ai_quota')
+      .eq('id', 'default')
+      .maybeSingle();
+    if (!data) return DEFAULT_BILLING;
+    return { priceCents: data.price_cents, currency: data.currency, freeAiQuota: data.free_ai_quota };
+  } catch {
+    return DEFAULT_BILLING;
+  }
+}
+
+/** Read the signed-in user's Pro state + this period's AI usage from the server. */
+export async function getSubscription(userId: string): Promise<{ pro: boolean; aiUsed: number } | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data } = await supabase
+      .from('subscriptions')
+      .select('pro, renews_at, ai_period, ai_count')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (!data) return { pro: false, aiUsed: 0 };
+    const pro = !!data.pro && (!data.renews_at || new Date(data.renews_at).getTime() > Date.now());
+    const aiUsed = data.ai_period === aiPeriod() ? (data.ai_count ?? 0) : 0;
+    return { pro, aiUsed };
+  } catch {
+    return null;
+  }
+}
+
+/** Mock "purchase" — calls the subscribe function which flips Pro server-side. */
+export async function startSubscription(): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase) return false;
+  try {
+    const { data, error } = await supabase.functions.invoke('subscribe', { body: {} });
+    return !error && !!data?.subscription?.pro;
+  } catch {
+    return false;
+  }
+}
+
+/** Format a price for display, e.g. (199, 'EUR') -> "€1.99". */
+export function formatPrice(cents: number, currency: string): string {
+  const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : currency === 'GBP' ? '£' : currency + ' ';
+  return `${symbol}${(cents / 100).toFixed(2)}`;
 }

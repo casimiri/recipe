@@ -21,6 +21,7 @@ planning, shopping for, and cooking recipes.
 - **Languages** — **English, French, Spanish, German**; defaults to the device language and switchable in Settings. Translates the whole UI, the seed recipe catalog (titles/descriptions/ingredients/steps), and **AI output** — imported recipes and the Substitute / Make-easier tools come back in the active language (enum-ish fields stay English so filtering keeps working)
 - **Units** — switch ingredient quantities between **metric and imperial** in Settings; conversion flows through recipe detail, cook mode, and exports
 - **Export** — save your created + saved recipes as a single PDF from Settings
+- **Recipe-Snap Pro** — free users get a set number of **AI actions per month** (recipe imports + Substitute / Make-easier); a **paywall** offers **Pro** for unlimited AI. Price and free quota are **admin-configurable** (a Supabase config row). The purchase is a **mock** flow (no real charge) with the payment call isolated so it can be swapped for Stripe / store IAP later
 - **Light + dark mode** and an **accent-colour picker** in Settings (the canonical "Sunny" visual direction)
 
 ## Tech stack
@@ -56,10 +57,12 @@ src/
   i18n/                I18nProvider + tr() selector, ui/{en,fr,es,de} dictionaries, enums + recipe content localization
   utils/               formatting helpers (incl. metric↔imperial unit conversion)
 supabase/
-  migrations/0001_init.sql   schema + RLS + profile trigger
+  migrations/                0001 schema · 0002 avatars bucket · 0003 billing
   seed.sql                   shared recipe catalog (generated)
-  functions/import-recipe/   OpenAI recipe extraction
-  functions/ai-tools/        OpenAI substitutions + step simplification
+  functions/import-recipe/   OpenAI recipe extraction (AI-quota gated)
+  functions/ai-tools/        OpenAI substitutions + step simplification (AI-quota gated)
+  functions/subscribe/       mock Pro purchase (flips subscriptions.pro)
+  functions/_shared/         cors + billing helpers (quota / Pro checks)
   config.toml
 .env.example
 ```
@@ -185,6 +188,7 @@ supabase secrets set SB_SERVICE_ROLE_KEY=<service-role key>
 
 supabase functions deploy import-recipe
 supabase functions deploy ai-tools
+supabase functions deploy subscribe
 ```
 
 - **`import-recipe`** — given a link / pasted text / photo, fetches the page (for
@@ -193,11 +197,20 @@ supabase functions deploy ai-tools
   Storage bucket and uses that as the recipe's hero image (so the imported
   recipe shows a relevant picture, not a stock one).
 - **`ai-tools`** — returns ingredient substitutions or simplified step text.
+- **`subscribe`** — mock Pro purchase: flips the signed-in user's
+  `subscriptions.pro` for ~30 days (the single seam a real Stripe/RevenueCat/IAP
+  integration would replace).
 
-Both functions accept a `lang` field (the active UI language) and respond in it:
-`import-recipe` writes the recipe's free text (title/desc/ingredients/steps) in
-that language while keeping enum-ish fields (meal/difficulty/cuisine/tags) in
-English so filtering still works; `ai-tools` answers in the language too.
+Both AI functions accept a `lang` field (the active UI language) and respond in
+it: `import-recipe` writes the recipe's free text (title/desc/ingredients/steps)
+in that language while keeping enum-ish fields (meal/difficulty/cuisine/tags) in
+English so filtering still works; `ai-tools` answers in the language too. They
+also **enforce the free monthly AI quota** for signed-in non-Pro users (via the
+shared `_shared/billing.ts` helper) — guests are gated client-side instead.
+
+**Admin: change the price or free quota** by updating the `app_config` row, e.g.
+`update public.app_config set price_cents = 299, free_ai_quota = 10 where id = 'default';`
+(run via the SQL editor or the Management API — see the `recipe-snap-ops` skill).
 
 The app calls these via `supabase.functions.invoke(...)` in `src/lib/ai.ts`, and
 gracefully falls back to local results if they're unavailable.
@@ -221,9 +234,15 @@ on conflict (id) do nothing;
 - **`profiles`** — auto-created on sign-up via a trigger.
 - **`user_state`** — per-user JSON blob (saved recipes, meal plan, grocery
   checks/extras, tastes, cooked history with ratings, dietary preferences,
-  unit system, user-created cookbooks, recent searches, and app-generated
-  reminders + a last-seen timestamp for the notifications badge), RLS-scoped to
-  the owner.
+  unit system, user-created cookbooks, recent searches, app-generated reminders
+  + a last-seen timestamp for the notifications badge, and the cached Pro flag +
+  monthly AI-usage counter), RLS-scoped to the owner.
+- **`app_config`** — single admin-tunable row (monthly `price_cents`, `currency`,
+  `free_ai_quota`); world-readable so the app can show the price and enforce the
+  quota, writable only by the service role (admin via SQL/dashboard).
+- **`subscriptions`** — authoritative per-user Pro state (`pro`, `renews_at`) +
+  AI usage (`ai_period`, `ai_count`); users read their own row, only the edge
+  functions (service role) write it.
 - **Storage `recipe-images`** — public bucket holding photos captured during
   import; the uploaded photo becomes the imported recipe's hero image.
 - **Storage `avatars`** — public bucket holding profile photos, namespaced per

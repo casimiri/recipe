@@ -72,7 +72,9 @@ export async function aiTool(args: {
   if (isSupabaseConfigured && supabase) {
     try {
       const { data, error } = await supabase.functions.invoke('ai-tools', { body: args });
-      if (!error && data) return data;
+      // quotaExceeded is the server backstop; clients gate proactively, so just
+      // fall through to the offline result here.
+      if (!error && data && !data.quotaExceeded) return data;
     } catch {
       // fall through
     }

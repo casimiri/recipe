@@ -4,6 +4,7 @@
 // Requires the OPENAI_API_KEY secret:
 //   supabase secrets set OPENAI_API_KEY=sk-...
 import { corsHeaders, json } from '../_shared/cors.ts';
+import { checkAiQuota } from '../_shared/billing.ts';
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const MODEL = Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini';
@@ -100,6 +101,11 @@ Deno.serve(async (req) => {
     if (!OPENAI_API_KEY) {
       return json({ error: 'OPENAI_API_KEY not configured on the function.' }, 500);
     }
+
+    // Free-tier AI quota (signed-in non-Pro users). 200 + flag so the client
+    // can read it without functions.invoke treating it as a transport error.
+    const quota = await checkAiQuota(req);
+    if (!quota.allowed) return json({ quotaExceeded: true, limit: quota.limit });
 
     // Build the user content (text + optional image for vision).
     const userContent: any[] = [];

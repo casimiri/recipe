@@ -11,6 +11,8 @@ import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
 import { Screen, ScreenHeader } from '../components/Screen';
 import { Sheet, Tag, PrimaryButton } from '../components/atoms';
+import { Paywall } from '../components/Paywall';
+import { formatPrice } from '../lib/repo';
 import { recipesHtml } from '../lib/share';
 import { FILTERS } from '../data/seed';
 import { ACCENTS } from '../theme/tokens';
@@ -41,10 +43,11 @@ export default function Settings() {
   const { t, accent, isDark, setAccent, toggleDark } = useTheme();
   const { tr, lang, setLang } = useI18n();
   const { configured, signOut } = useAuth();
-  const { diet, setDiet, units, setUnits, profile, saved, byId } = useApp();
+  const { diet, setDiet, units, setUnits, profile, saved, byId, pro, priceCents, currency } = useApp();
   const router = useRouter();
   const [dietOpen, setDietOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
 
   const toggleDiet = (d: string) =>
@@ -134,7 +137,9 @@ export default function Settings() {
       <View style={{ marginBottom: 24 }}>
         <Txt style={sectionLabel}>Recipe-Snap</Txt>
         <View style={card}>
-          <Row icon="sparkle" label={tr((s) => s.settings.upgrade)} t={t} right={<Txt style={{ fontSize: 13.5, color: t.muted }}>{tr((s) => s.settings.aiImports)}</Txt>} />
+          <Row icon="sparkle" label={tr((s) => s.pro.title)} t={t}
+            right={<Txt style={{ fontSize: 13.5, fontWeight: pro ? '700' : '400', color: pro ? t.accent : t.muted }}>{pro ? tr((s) => s.pro.active) : tr((s) => s.pro.manageFree, { price: formatPrice(priceCents, currency) })}</Txt>}
+            onPress={() => setPayOpen(true)} />
           <Row icon="share" label={tr((s) => s.settings.invite)} t={t} last />
         </View>
       </View>
@@ -157,6 +162,8 @@ export default function Settings() {
           <PrimaryButton t={t} full onPress={() => setDietOpen(false)}>{tr((s) => s.common.done)}</PrimaryButton>
         </View>
       </Sheet>
+
+      <Paywall open={payOpen} onClose={() => setPayOpen(false)} />
 
       <Sheet open={langOpen} onClose={() => setLangOpen(false)} t={t} title={tr((s) => s.settings.chooseLanguage)}>
         <View style={{ gap: 4, marginBottom: 8 }}>

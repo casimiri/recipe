@@ -267,4 +267,18 @@ export const fr: UIStrings = {
     signOut: 'Se déconnecter',
     chooseLanguage: 'Choisir la langue',
   },
+  pro: {
+    title: 'Recipe-Snap Pro',
+    tagline: 'L’IA illimitée, chaque mois.',
+    benefitImports: 'Imports de recettes par IA illimités',
+    benefitTools: 'Substituer & Simplifier illimités',
+    benefitCancel: 'Annulable à tout moment',
+    cta: 'Passer Pro — {price}/mois',
+    processing: 'Traitement…',
+    active: 'Pro actif',
+    limitTitle: 'Limite IA gratuite atteinte',
+    limitBody: 'Vous avez utilisé vos {count} actions IA gratuites ce mois-ci. Passez Pro pour une IA illimitée.',
+    aiLeft: '{count} IA gratuites restantes',
+    manageFree: '{price}/mois',
+  },
 };

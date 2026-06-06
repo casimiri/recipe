@@ -2,6 +2,7 @@
 // Deploy: supabase functions deploy ai-tools
 // Requires: supabase secrets set OPENAI_API_KEY=sk-...
 import { corsHeaders, json } from '../_shared/cors.ts';
+import { checkAiQuota } from '../_shared/billing.ts';
 
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const MODEL = Deno.env.get('OPENAI_MODEL') ?? 'gpt-4o-mini';
@@ -50,6 +51,9 @@ Deno.serve(async (req) => {
   try {
     const body = (await req.json()) as Body;
     if (!OPENAI_API_KEY) return json({ error: 'OPENAI_API_KEY not configured.' }, 500);
+
+    const quota = await checkAiQuota(req);
+    if (!quota.allowed) return json({ quotaExceeded: true, limit: quota.limit });
 
     if (body.tool === 'substitute') {
       const target = body.ingredient ?? body.recipe.ingredients[0]?.item ?? '';

@@ -10,6 +10,7 @@ import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
 import { Dish, IconBtn, PrimaryButton, SectionHead, Tag } from '../components/atoms';
 import { ScreenHeader } from '../components/Screen';
+import { Paywall } from '../components/Paywall';
 import { fmtQty } from '../utils/format';
 import { importRecipe } from '../lib/ai';
 import { withA } from '../theme/tokens';
@@ -31,9 +32,10 @@ type Stage = 'pick' | 'extract' | 'preview';
 export default function ImportScreen() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { saveRecipe, cookbooks, addToCookbook } = useApp();
+  const { saveRecipe, cookbooks, addToCookbook, canUseAi, recordAiUse, pro, aiRemaining } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [payOpen, setPayOpen] = useState(false);
 
   // Brand source names (Instagram/TikTok/YouTube) stay as-is; generic ones localize.
   const srcLabel = (s: typeof SOURCES[number]) =>
@@ -54,6 +56,8 @@ export default function ImportScreen() {
   const [animDone, setAnimDone] = useState(false);
 
   const begin = async (s: typeof SOURCES[number], url?: string) => {
+    if (!canUseAi) { setPayOpen(true); return; }
+    recordAiUse();
     setSrc(s);
     setRecipe(null);
     setAnimDone(false);
@@ -152,9 +156,15 @@ export default function ImportScreen() {
         <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text }}>{tr((s) => s.import.addRecipe)}</Txt>
         <IconBtn t={t} onPress={() => router.back()}><Icon.x size={20} sw={2.4} color={t.text} /></IconBtn>
       </View>
-      <Txt style={{ fontSize: 14.5, color: t.muted, lineHeight: 22, marginBottom: 22 }}>
+      <Txt style={{ fontSize: 14.5, color: t.muted, lineHeight: 22, marginBottom: payOpen || pro || aiRemaining === null ? 22 : 10 }}>
         {tr((s) => s.import.subtitle)}
       </Txt>
+      {!pro && aiRemaining !== null ? (
+        <Pressable onPress={() => setPayOpen(true)} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 18 }}>
+          <Icon.sparkle size={14} color={t.accent} />
+          <Txt style={{ color: t.accent, fontWeight: '700', fontSize: 12.5 }}>{tr((s) => s.pro.aiLeft, { count: aiRemaining })}</Txt>
+        </Pressable>
+      ) : null}
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: t.surface2, borderRadius: 16, paddingLeft: 16, paddingRight: 6, paddingVertical: 6, marginBottom: 12, borderWidth: 1, borderColor: t.border }}>
         <Icon.link size={19} sw={2} color={t.faint} />
@@ -188,6 +198,8 @@ export default function ImportScreen() {
           );
         })}
       </View>
+
+      <Paywall open={payOpen} onClose={() => setPayOpen(false)} reachedLimit />
     </ScrollView>
   );
 }

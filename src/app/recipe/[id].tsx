@@ -9,6 +9,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
 import { trEnum } from '../../i18n/enums';
 import { useApp } from '../../store/AppState';
+import { Paywall } from '../../components/Paywall';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
 import {
@@ -44,12 +45,13 @@ function AiChip({ t, icon, label, onPress, active }: { t: Tokens; icon: React.Re
 export default function RecipeDetail() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook } = useApp();
+  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const r = byId(String(id)) || recipes[0];
 
+  const [payOpen, setPayOpen] = useState(false);
   const [servings, setServings] = useState(r.servings);
   const [checked, setChecked] = useState<string[]>([]);
   const [easier, setEasier] = useState(false);
@@ -96,15 +98,20 @@ export default function RecipeDetail() {
 
   // Toggle "make easier" -> fetch simplified steps via AI (with offline fallback).
   const toggleEasier = async () => {
-    const next = !easier;
-    setEasier(next);
-    if (next && !easySteps) {
+    if (!easier && !easySteps) {
+      if (!canUseAi) { setPayOpen(true); return; }
+      recordAiUse();
+      setEasier(true);
       const res = await aiTool({ tool: 'simplify', recipe: r, lang });
       if (res.steps) setEasySteps(res.steps);
+      return;
     }
+    setEasier((e) => !e);
   };
 
   const openSub = async (ing: Ingredient | null) => {
+    if (!canUseAi) { setPayOpen(true); return; }
+    recordAiUse();
     setSubItem(ing);
     setSheet('sub');
     setSubs(null);
@@ -394,6 +401,8 @@ export default function RecipeDetail() {
       <ConfirmSheet open={sheet === 'addedCb'} onClose={() => setSheet(null)} t={t} icon={<Icon.book size={26} sw={2} color={t.accent} />}
         title={tr((s) => s.recipe.addedToCookbook)} body={tr((s) => s.recipe.savedToCookbookBody, { title: r.title })}
         cta={tr((s) => s.recipe.viewCookbooks)} onCta={() => router.push('/(tabs)/cookbooks')} />
+
+      <Paywall open={payOpen} onClose={() => setPayOpen(false)} reachedLimit />
     </View>
   );
 }

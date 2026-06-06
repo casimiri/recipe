@@ -5,6 +5,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import {
   listRecipes, addRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
   DEFAULT_STATE, UserState, ProfileRow, CookLog, UserCookbook, AppReminder,
+  getBillingConfig, getSubscription, startSubscription, aiPeriod, type BillingConfig,
 } from '../lib/repo';
 import { RECIPES as SEED_RECIPES, PROFILE } from '../data/seed';
 import { useI18n } from '../i18n';
@@ -49,6 +50,19 @@ interface AppCtx {
   markNotificationsRead: () => void;
   profile: Profile;
   updateProfile: (patch: Partial<ProfileRow>) => Promise<void>;
+  // Billing / Pro
+  pro: boolean;
+  priceCents: number;
+  currency: string;
+  freeAiQuota: number;
+  /** Remaining free AI actions this month; null when Pro (unlimited). */
+  aiRemaining: number | null;
+  /** Whether the user may run an AI action now (Pro or quota remaining). */
+  canUseAi: boolean;
+  /** Record one AI action against the monthly quota (no-op when Pro). */
+  recordAiUse: () => void;
+  /** Mock purchase of Pro; resolves true on success. */
+  subscribe: () => Promise<boolean>;
 }
 
 const Ctx = createContext<AppCtx | null>(null);
@@ -60,6 +74,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [recipes, setRecipes] = useState<Recipe[]>(SEED_RECIPES);
   const [state, setState] = useState<UserState>(DEFAULT_STATE);
   const [dbProfile, setDbProfile] = useState<ProfileRow | null>(null);
+  const [billing, setBilling] = useState<BillingConfig>({ priceCents: 199, currency: 'EUR', freeAiQuota: 5 });
 
   // Unread = app-generated reminders newer than the last time the screen was seen.
   const unread = useMemo(
@@ -71,15 +86,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     let active = true;
     setReady(false);
     (async () => {
-      const [rs, us, prof] = await Promise.all([
+      const [rs, us, prof, cfg, sub] = await Promise.all([
         listRecipes(),
         loadUserState(user?.id),
         user?.id ? getProfile(user.id) : Promise.resolve(null),
+        getBillingConfig(),
+        user?.id ? getSubscription(user.id) : Promise.resolve(null),
       ]);
       if (!active) return;
       setRecipes([...rs]);
-      setState(us);
+      // Reconcile Pro state + AI usage from the server (authoritative for
+      // signed-in users); guests keep whatever is in their local state.
+      setState(sub ? { ...us, pro: sub.pro, aiUsed: sub.aiUsed, aiPeriodKey: aiPeriod() } : us);
       setDbProfile(prof);
+      setBilling(cfg);
       setReady(true);
     })();
     return () => { active = false; };
@@ -117,6 +137,11 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // fields (cuisine/meal/difficulty/tags) stay English here so the search and
   // category filters keep matching; screens localize those labels via trEnum.
   const localizedRecipes = useMemo(() => recipes.map((r) => localizeRecipe(r, lang)), [recipes, lang]);
+
+  // Free-tier AI quota: usage resets when the month rolls over.
+  const usedThisPeriod = state.aiPeriodKey === aiPeriod() ? state.aiUsed : 0;
+  const aiRemaining = state.pro ? null : Math.max(0, billing.freeAiQuota - usedThisPeriod);
+  const canUseAi = state.pro || usedThisPeriod < billing.freeAiQuota;
 
   const value: AppCtx = useMemo(() => ({
     ready,
@@ -220,7 +245,25 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       }));
       if (user?.id) await upsertProfile(user.id, patch);
     },
-  }), [ready, localizedRecipes, state, unread, user?.id, profile]);
+    pro: state.pro,
+    priceCents: billing.priceCents,
+    currency: billing.currency,
+    freeAiQuota: billing.freeAiQuota,
+    aiRemaining,
+    canUseAi,
+    recordAiUse: () =>
+      setState((s) => {
+        if (s.pro) return s;
+        const p = aiPeriod();
+        return s.aiPeriodKey === p ? { ...s, aiUsed: s.aiUsed + 1 } : { ...s, aiPeriodKey: p, aiUsed: 1 };
+      }),
+    subscribe: async () => {
+      // Signed-in: server flips Pro via the subscribe function. Guest: local mock.
+      const ok = user?.id ? await startSubscription() : true;
+      if (ok) setState((s) => ({ ...s, pro: true }));
+      return ok;
+    },
+  }), [ready, localizedRecipes, state, unread, user?.id, profile, billing, aiRemaining, canUseAi]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

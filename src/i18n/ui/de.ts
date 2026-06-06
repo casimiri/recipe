@@ -267,4 +267,18 @@ export const de: UIStrings = {
     signOut: 'Abmelden',
     chooseLanguage: 'Sprache wählen',
   },
+  pro: {
+    title: 'Recipe-Snap Pro',
+    tagline: 'Unbegrenzte KI, jeden Monat.',
+    benefitImports: 'Unbegrenzte KI-Rezeptimporte',
+    benefitTools: 'Unbegrenzt Ersetzen & Vereinfachen',
+    benefitCancel: 'Jederzeit kündbar',
+    cta: 'Pro holen — {price}/Mon.',
+    processing: 'Wird verarbeitet…',
+    active: 'Pro aktiv',
+    limitTitle: 'Kostenloses KI-Limit erreicht',
+    limitBody: 'Du hast deine {count} kostenlosen KI-Aktionen diesen Monat aufgebraucht. Hol dir Pro für unbegrenzte KI.',
+    aiLeft: '{count} kostenlose KI übrig',
+    manageFree: '{price}/Mon.',
+  },
 };
