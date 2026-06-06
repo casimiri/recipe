@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, ScrollView, ActivityIndicator, Share } from 'react-native';
+import { View, Pressable, ScrollView, ActivityIndicator, Share, TextInput } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -12,7 +12,8 @@ import { Icon } from '../../components/Icon';
 import {
   Dish, IconBtn, RatingBadge, SourceTag, StatChip, PrimaryButton, Sheet, Tag, Scrim,
 } from '../../components/atoms';
-import { fmtQty } from '../../utils/format';
+import { fmtQty, convertUnit } from '../../utils/format';
+import { recipeHtml, recipeUrl } from '../../lib/share';
 import { aiTool } from '../../lib/ai';
 import { DAYS } from '../../data/seed';
 import type { Tokens } from '../../theme/tokens';
@@ -40,7 +41,7 @@ function AiChip({ t, icon, label, onPress, active }: { t: Tokens; icon: React.Re
 
 export default function RecipeDetail() {
   const { t } = useTheme();
-  const { byId, recipes, isSaved, toggleSave, addToPlan } = useApp();
+  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -50,49 +51,31 @@ export default function RecipeDetail() {
   const [checked, setChecked] = useState<string[]>([]);
   const [easier, setEasier] = useState(false);
   const [easySteps, setEasySteps] = useState<{ t: string; d: string }[] | null>(null);
-  const [sheet, setSheet] = useState<null | 'sub' | 'scale' | 'plan' | 'added' | 'planned' | 'share'>(null);
+  const [sheet, setSheet] = useState<null | 'sub' | 'scale' | 'plan' | 'added' | 'planned' | 'share' | 'cookbook' | 'addedCb'>(null);
+  const [newCb, setNewCb] = useState('');
   const [subItem, setSubItem] = useState<Ingredient | null>(null);
   const [subs, setSubs] = useState<string[] | null>(null);
   const [subLoading, setSubLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const recipeUrl = `https://recipe-snap.app/r/${r.id}`;
-
-  // A self-contained printable/exportable HTML version of the recipe.
-  const recipeHtml = () => {
-    const ing = r.ingredients
-      .map((i) => `<li>${fmtQty(i.qty)}${i.unit ? ' ' + i.unit : ''} ${i.item}</li>`)
-      .join('');
-    const steps = r.steps.map((s) => `<li><strong>${s.t}</strong><br/>${s.d}</li>`).join('');
-    return `<html><head><meta name="viewport" content="width=device-width, initial-scale=1"/>
-      <style>body{font-family:-apple-system,Helvetica,Arial,sans-serif;padding:28px;color:#1a1a1a}
-      h1{font-size:26px;margin:0 0 4px}.meta{color:#888;margin-bottom:18px;font-size:13px}
-      h2{font-size:18px;margin:24px 0 8px}li{margin-bottom:8px;line-height:1.45}
-      img{width:100%;max-height:280px;object-fit:cover;border-radius:14px;margin-bottom:18px}</style></head>
-      <body><img src="${r.img}"/><h1>${r.title}</h1>
-      <div class="meta">${r.cuisine} · ${r.time} mins · ${r.servings} servings · ${r.cal} cal</div>
-      <p>${r.desc}</p>
-      <h2>Ingredients</h2><ul>${ing}</ul>
-      <h2>Directions</h2><ol>${steps}</ol>
-      <p class="meta">${recipeUrl}</p></body></html>`;
-  };
+  const url = recipeUrl(r.id);
 
   // Dispatch for the share-sheet actions. Cancellation/unsupported = silent no-op.
   const onShare = async (label: string) => {
     try {
       if (label === 'Copy link') {
-        await Clipboard.setStringAsync(recipeUrl);
+        await Clipboard.setStringAsync(url);
         setCopied(true);
         setTimeout(() => setCopied(false), 1800);
         return;
       }
       setSheet(null);
       if (label === 'Stories') {
-        await Share.share({ message: `${r.title} — ${recipeUrl}`, url: recipeUrl });
+        await Share.share({ message: `${r.title} — ${url}`, url });
       } else if (label === 'Print') {
-        await Print.printAsync({ html: recipeHtml() });
+        await Print.printAsync({ html: recipeHtml(r, units) });
       } else if (label === 'Save PDF') {
-        const { uri } = await Print.printToFileAsync({ html: recipeHtml() });
+        const { uri } = await Print.printToFileAsync({ html: recipeHtml(r, units) });
         if (await Sharing.isAvailableAsync()) {
           await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
         }
@@ -192,7 +175,8 @@ export default function RecipeDetail() {
               {r.ingredients.filter((i) => i.g === g).map((ing, idx) => {
                 const key = g + idx;
                 const on = checked.includes(key);
-                const q = fmtQty(ing.qty * scale);
+                const conv = convertUnit(ing.qty * scale, ing.unit, units);
+                const q = fmtQty(conv.qty);
                 return (
                   <View key={key} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: t.border }}>
                     <Pressable onPress={() => setChecked((c) => (on ? c.filter((x) => x !== key) : [...c, key]))} style={{
@@ -203,7 +187,7 @@ export default function RecipeDetail() {
                       {on ? <Icon.check size={14} sw={3} color={t.accentText} /> : null}
                     </Pressable>
                     <Txt style={{ flex: 1, fontSize: 14.5, color: t.text, textDecorationLine: on ? 'line-through' : 'none', opacity: on ? 0.5 : 1 }}>
-                      {q ? <Txt style={{ fontWeight: '700', fontSize: 14.5 }}>{q}{ing.unit ? ' ' + ing.unit : ''} </Txt> : null}{ing.item}
+                      {q ? <Txt style={{ fontWeight: '700', fontSize: 14.5 }}>{q}{conv.unit ? ' ' + conv.unit : ''} </Txt> : null}{ing.item}
                     </Txt>
                     <Pressable onPress={() => openSub(ing)} hitSlop={6} style={{ padding: 4 }}>
                       <Icon.swap size={17} sw={2} color={t.faint} />
@@ -278,6 +262,18 @@ export default function RecipeDetail() {
             <View style={{ flex: 1 }}>
               <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text }}>Add to meal plan</Txt>
               <Txt style={{ fontSize: 12.5, color: t.muted }}>Schedule this for a day & meal</Txt>
+            </View>
+            <Icon.chevR size={20} sw={2} color={t.faint} />
+          </Pressable>
+
+          {/* Add to cookbook */}
+          <Pressable onPress={() => setSheet('cookbook')} style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: t.radius, borderWidth: 1, borderColor: t.border, backgroundColor: t.surface }}>
+            <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: t.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon.book size={20} sw={2} color={t.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text }}>Add to cookbook</Txt>
+              <Txt style={{ fontSize: 12.5, color: t.muted }}>Organize into a collection</Txt>
             </View>
             <Icon.chevR size={20} sw={2} color={t.faint} />
           </Pressable>
@@ -366,6 +362,35 @@ export default function RecipeDetail() {
           ))}
         </View>
       </Sheet>
+
+      {/* Add to cookbook */}
+      <Sheet open={sheet === 'cookbook'} onClose={() => { setSheet(null); setNewCb(''); }} t={t} title="Add to cookbook">
+        {cookbooks.length === 0 ? (
+          <Txt style={{ fontSize: 13.5, color: t.muted, marginBottom: 16 }}>No cookbooks yet — create one below.</Txt>
+        ) : (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+            {cookbooks.map((c) => {
+              const inIt = c.recipeIds.includes(r.id);
+              return (
+                <Tag key={c.id} t={t} active={inIt} onPress={() => { if (!inIt) addToCookbook(c.id, r.id); setSheet('addedCb'); }}>
+                  {inIt ? `${c.name} ✓` : c.name}
+                </Tag>
+              );
+            })}
+          </View>
+        )}
+        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+          <TextInput value={newCb} onChangeText={setNewCb} placeholder="New cookbook" placeholderTextColor={t.faint}
+            style={{ flex: 1, backgroundColor: t.surface2, borderRadius: t.radiusSm, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: t.text, fontFamily: t.body }} />
+          <PrimaryButton t={t} disabled={!newCb.trim()} style={{ paddingHorizontal: 18, paddingVertical: 12 }}
+            onPress={() => { const id = createCookbook(newCb); addToCookbook(id, r.id); setNewCb(''); setSheet('addedCb'); }}>
+            Create
+          </PrimaryButton>
+        </View>
+      </Sheet>
+      <ConfirmSheet open={sheet === 'addedCb'} onClose={() => setSheet(null)} t={t} icon={<Icon.book size={26} sw={2} color={t.accent} />}
+        title="Added to cookbook" body={`${r.title} saved to your cookbook.`}
+        cta="View cookbooks" onCta={() => router.push('/(tabs)/cookbooks')} />
     </View>
   );
 }

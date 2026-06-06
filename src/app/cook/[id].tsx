@@ -9,7 +9,7 @@ import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
 import { Dish, IconBtn, PrimaryButton, Sheet } from '../../components/atoms';
-import { fmtQty, mmss } from '../../utils/format';
+import { fmtQty, mmss, convertUnit } from '../../utils/format';
 import type { Tokens } from '../../theme/tokens';
 
 function useCountdown(initial: number) {
@@ -65,7 +65,7 @@ function CookTimer({ seconds, t }: { seconds: number; t: Tokens }) {
 export default function CookMode() {
   useKeepAwake();
   const { t } = useTheme();
-  const { byId, recipes } = useApp();
+  const { byId, recipes, units } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -114,12 +114,15 @@ export default function CookMode() {
       </View>
 
       <Sheet open={peek} onClose={() => setPeek(false)} t={t} title="Ingredients">
-        {r.ingredients.map((ing, k) => (
-          <View key={k} style={{ flexDirection: 'row', gap: 10, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: t.border }}>
-            <Txt style={{ color: t.accent, fontWeight: '700', minWidth: 70, fontSize: 14.5 }}>{fmtQty(ing.qty)} {ing.unit}</Txt>
-            <Txt style={{ fontSize: 14.5, color: t.text, flex: 1 }}>{ing.item}</Txt>
-          </View>
-        ))}
+        {r.ingredients.map((ing, k) => {
+          const c = convertUnit(ing.qty, ing.unit, units);
+          return (
+            <View key={k} style={{ flexDirection: 'row', gap: 10, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: t.border }}>
+              <Txt style={{ color: t.accent, fontWeight: '700', minWidth: 70, fontSize: 14.5 }}>{fmtQty(c.qty)} {c.unit}</Txt>
+              <Txt style={{ fontSize: 14.5, color: t.text, flex: 1 }}>{ing.item}</Txt>
+            </View>
+          );
+        })}
       </Sheet>
     </View>
   );

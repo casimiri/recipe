@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { View, Pressable } from 'react-native';
 import { useRouter } from 'expo-router';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 import { useTheme } from '../theme/ThemeProvider';
 import { useAuth } from '../store/auth';
 import { useApp } from '../store/AppState';
@@ -8,6 +10,7 @@ import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
 import { Screen, ScreenHeader } from '../components/Screen';
 import { Sheet, Tag, PrimaryButton } from '../components/atoms';
+import { recipesHtml } from '../lib/share';
 import { FILTERS } from '../data/seed';
 import { ACCENTS } from '../theme/tokens';
 import type { Tokens } from '../theme/tokens';
@@ -36,13 +39,34 @@ function Row({ icon, label, t, right, onPress, last }: { icon: keyof typeof Icon
 export default function Settings() {
   const { t, accent, isDark, setAccent, toggleDark } = useTheme();
   const { configured, signOut } = useAuth();
-  const { diet, setDiet } = useApp();
+  const { diet, setDiet, units, setUnits, profile, saved, byId } = useApp();
   const router = useRouter();
   const [dietOpen, setDietOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const toggleDiet = (d: string) =>
     setDiet(diet.includes(d) ? diet.filter((x) => x !== d) : [...diet, d]);
   const dietLabel = diet.length === 0 ? 'Any' : diet.length === 1 ? diet[0] : `${diet.length} selected`;
+
+  // Export the user's created + saved recipes as a single PDF via the OS share sheet.
+  const exportRecipes = async () => {
+    if (exporting) return;
+    const ids = [...new Set([...profile.created, ...saved])];
+    const list = ids.map(byId).filter(Boolean) as NonNullable<ReturnType<typeof byId>>[];
+    if (!list.length) return;
+    setExporting(true);
+    try {
+      const html = recipesHtml(list, `${profile.name}'s Recipes`, units);
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
+      }
+    } catch {
+      // user dismissed the share sheet or export is unsupported here
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const card = { backgroundColor: t.surface, borderRadius: t.radius, borderWidth: 1, borderColor: t.border, overflow: 'hidden' as const };
   const sectionLabel = { fontSize: 12.5, fontWeight: '800' as const, color: t.muted, textTransform: 'uppercase' as const, letterSpacing: 0.6, marginBottom: 10 };
@@ -82,7 +106,9 @@ export default function Settings() {
       <View style={{ marginBottom: 24 }}>
         <Txt style={sectionLabel}>Preferences</Txt>
         <View style={card}>
-          <Row icon="globe" label="Units" t={t} right={<Txt style={{ fontSize: 13.5, color: t.muted }}>Metric</Txt>} />
+          <Row icon="globe" label="Units" t={t}
+            right={<Txt style={{ fontSize: 13.5, color: t.muted }}>{units === 'metric' ? 'Metric' : 'Imperial'}</Txt>}
+            onPress={() => setUnits(units === 'metric' ? 'imperial' : 'metric')} />
           <Row icon="leaf" label="Dietary preferences" t={t} right={<Txt style={{ fontSize: 13.5, color: t.muted }}>{dietLabel}</Txt>} onPress={() => setDietOpen(true)} last />
         </View>
       </View>
@@ -92,7 +118,7 @@ export default function Settings() {
         <View style={card}>
           <Row icon="user" label="Edit profile" t={t} onPress={() => router.push('/edit-profile')} />
           <Row icon="bell" label="Notifications" t={t} onPress={() => router.push('/notifications')} />
-          <Row icon="download" label="Export my recipes" t={t} last />
+          <Row icon="download" label={exporting ? 'Preparing PDF…' : 'Export my recipes'} t={t} onPress={exportRecipes} last />
         </View>
       </View>
 

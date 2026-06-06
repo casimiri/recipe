@@ -65,7 +65,7 @@ export default function Onboarding() {
     return (
       <View style={{ flex: 1, backgroundColor: t.surface, paddingTop: insets.top + 6, paddingHorizontal: 24 }}>
         <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text, marginBottom: 8 }}>What do you love to cook?</Txt>
-        <Txt style={{ fontSize: 14.5, color: t.muted, marginBottom: 24 }}>Pick a few — we'll tune your home feed.</Txt>
+        <Txt style={{ fontSize: 14.5, color: t.muted, marginBottom: 24 }}>Pick a few — we’ll tune your home feed.</Txt>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
           {TASTES.map((x) => (
             <Tag key={x} t={t} active={picked.includes(x)} onPress={() => togglePick(x)}>{x}</Tag>

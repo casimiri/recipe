@@ -14,6 +14,13 @@ export interface CookLog {
   at: number;
 }
 
+/** A user-created cookbook (a named collection of recipe ids). */
+export interface UserCookbook {
+  id: string;
+  name: string;
+  recipeIds: string[];
+}
+
 export interface UserState {
   saved: string[];
   plan: WeekPlan;
@@ -23,6 +30,10 @@ export interface UserState {
   cooked: CookLog[];
   /** Dietary preferences (recipe tags); recipes shown must match all of these. */
   diet: string[];
+  /** Measurement system for ingredient quantities. */
+  units: 'metric' | 'imperial';
+  /** User-created cookbooks. */
+  cookbooks: UserCookbook[];
 }
 
 export const DEFAULT_STATE: UserState = {
@@ -38,6 +49,8 @@ export const DEFAULT_STATE: UserState = {
     { id: 'tacos', rating: 4, at: 0 },
   ],
   diet: [],
+  units: 'metric',
+  cookbooks: [],
 };
 
 const GUEST = 'guest';

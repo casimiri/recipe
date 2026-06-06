@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   listRecipes, addRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
-  DEFAULT_STATE, UserState, ProfileRow, CookLog,
+  DEFAULT_STATE, UserState, ProfileRow, CookLog, UserCookbook,
 } from '../lib/repo';
 import { RECIPES as SEED_RECIPES, NOTIFICATIONS, PROFILE } from '../data/seed';
 import { useAuth } from './auth';
@@ -32,6 +32,12 @@ interface AppCtx {
   logCook: (id: string, rating: number) => void;
   diet: string[];
   setDiet: (d: string[]) => void;
+  units: 'metric' | 'imperial';
+  setUnits: (u: 'metric' | 'imperial') => void;
+  cookbooks: UserCookbook[];
+  createCookbook: (name: string) => string;
+  addToCookbook: (cookbookId: string, recipeId: string) => void;
+  removeFromCookbook: (cookbookId: string, recipeId: string) => void;
   unread: number;
   markNotificationsRead: () => void;
   profile: Profile;
@@ -130,6 +136,28 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       })),
     diet: state.diet,
     setDiet: (d) => update({ diet: d }),
+    units: state.units,
+    setUnits: (u) => update({ units: u }),
+    cookbooks: state.cookbooks,
+    createCookbook: (name) => {
+      const id = 'cb' + Date.now();
+      setState((s) => ({ ...s, cookbooks: [{ id, name: name.trim(), recipeIds: [] }, ...s.cookbooks] }));
+      return id;
+    },
+    addToCookbook: (cookbookId, recipeId) =>
+      setState((s) => ({
+        ...s,
+        cookbooks: s.cookbooks.map((c) =>
+          c.id === cookbookId && !c.recipeIds.includes(recipeId)
+            ? { ...c, recipeIds: [recipeId, ...c.recipeIds] }
+            : c),
+      })),
+    removeFromCookbook: (cookbookId, recipeId) =>
+      setState((s) => ({
+        ...s,
+        cookbooks: s.cookbooks.map((c) =>
+          c.id === cookbookId ? { ...c, recipeIds: c.recipeIds.filter((x) => x !== recipeId) } : c),
+      })),
     unread,
     markNotificationsRead: () => setUnread(0),
     profile,

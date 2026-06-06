@@ -76,9 +76,13 @@ Needs the **service_role** key (get via `…/api-keys?reveal=true`), sent as bot
 
 ## Verify changes
 
-Always run `npx tsc --noEmit` after edits. Reload Expo Go to see UI changes; restart Metro with `-c` after dep/env changes.
+After edits run both gates: `npx tsc --noEmit` (or `npm run typecheck`) and `npm run lint` (ESLint / `eslint-config-expo`, config in `eslint.config.js`). Both should pass clean (a few pre-existing lint *warnings* are tolerated; keep errors at zero). Reload Expo Go to see UI changes; restart Metro with `-c` after dep/env changes.
 
 ## Conventions
 
-- Match existing component style: `useApp()` for app state (`src/store/AppState.tsx`), `useTheme()` for tokens, atoms from `src/components/atoms.tsx` (`Sheet`, `Tag`, `PrimaryButton`, etc.). Persisted user state lives in `UserState` (`src/lib/repo.ts`) and syncs to the `user_state` table automatically.
+- Match existing component style: `useApp()` for app state (`src/store/AppState.tsx`), `useTheme()` for tokens, atoms from `src/components/atoms.tsx` (`Sheet`, `Tag`, `PrimaryButton`, etc.).
+- Persisted user state lives in `UserState` (`src/lib/repo.ts`) and syncs to the `user_state` table automatically. Current fields: `saved`, `plan`, `groceryChecked`, `groceryExtra`, `tastes`, `cooked` (CookLog[]), `diet`, `units` ('metric'|'imperial'), `cookbooks` (UserCookbook[]). Add new persisted state by extending `UserState` + `DEFAULT_STATE` and exposing it through `AppState` — hydration merges over `DEFAULT_STATE`, so older rows pick up new fields safely.
+- Ingredient quantities: convert with `convertUnit(qty, unit, units)` from `src/utils/format.ts` (weight↔weight, volume↔volume only) and render via `fmtQty`. Honor the user's `units` preference on any screen that shows quantities.
+- Share / print / PDF export: build HTML with `recipeHtml` / `recipesHtml` from `src/lib/share.ts` (unit-aware), then `expo-print` + `expo-sharing`. Clipboard via `expo-clipboard`; native share via RN `Share`.
+- Camera / photos: `expo-image-picker` (`launchCameraAsync` with `requestCameraPermissionsAsync`, fall back to `launchImageLibraryAsync`). Permission strings live in the `expo-image-picker` plugin block in `app.json`.
 - New Expo native modules: install with `npx expo install <pkg>` (version-matched, Expo-Go-compatible), then restart Metro with `-c`.

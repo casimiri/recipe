@@ -11,13 +11,15 @@ planning, shopping for, and cooking recipes.
 - **Onboarding** — welcome + 3 value slides + taste preferences
 - **Home** — greeting, search, category pills, recipe grid
 - **Search** — live filtering, trending searches, browse-by-category, filter sheet
-- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, AI tools (**Scale / Substitute / Make easier**), and **share & export** (copy link, native share sheet, print, save as **PDF**)
-- **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website / photo → AI extraction → editable preview → save
+- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, AI tools (**Scale / Substitute / Make easier**), **add to cookbook**, and **share & export** (copy link, native share sheet, print, save as **PDF**)
+- **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction → editable preview → save to a cookbook
 - **Cook mode** — full-screen step-by-step with timers and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
 - **Meal planner** — weekly calendar with breakfast / lunch / dinner slots
 - **Smart grocery list** — grouped by aisle or recipe, progress, order-delivery flow
 - **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes
-- **Cookbooks**, **Profile / social** (created / saved / cooked tabs), **Notifications**, **Settings**
+- **Cookbooks** — browse, **create your own**, and add/remove recipes; plus **Profile / social** (created / saved / cooked tabs), **Notifications**, **Settings**
+- **Units** — switch ingredient quantities between **metric and imperial** in Settings; conversion flows through recipe detail, cook mode, and exports
+- **Export** — save your created + saved recipes as a single PDF from Settings
 - **Light + dark mode** and an **accent-colour picker** in Settings (the canonical "Sunny" visual direction)
 
 ## Tech stack
@@ -27,10 +29,11 @@ planning, shopping for, and cooking recipes.
 | App | Expo SDK 54, React Native 0.81, expo-router (file-based) |
 | Language | TypeScript |
 | UI | react-native-svg icons, expo-image, expo-linear-gradient, Plus Jakarta Sans |
-| Device | expo-clipboard, expo-print, expo-sharing (recipe share / print / PDF export) |
+| Device | expo-image-picker (camera + library), expo-clipboard, expo-print, expo-sharing |
 | State | React context + AsyncStorage (offline-first) |
 | Backend | Supabase (Postgres + Auth + Edge Functions) |
 | AI | OpenAI, called **server-side** from Supabase Edge Functions |
+| Quality | TypeScript (`tsc --noEmit`), ESLint (`eslint-config-expo`) |
 
 ## Project structure
 
@@ -47,8 +50,8 @@ src/
   theme/               tokens (Sunny), ThemeProvider (accent + dark, persisted)
   data/                seed content + types
   store/               auth + AppState contexts
-  lib/                 supabase client, repo (data access), ai (edge-function client)
-  utils/               formatting helpers
+  lib/                 supabase client, repo (data access), ai (edge-function client), share (print/PDF/export HTML)
+  utils/               formatting helpers (incl. metric↔imperial unit conversion)
 supabase/
   migrations/0001_init.sql   schema + RLS + profile trigger
   seed.sql                   shared recipe catalog (generated)
@@ -85,10 +88,11 @@ launch a local emulator via `adb` and will fail. Restart with `npx expo start
 > This repo ships a `recipe-snap-ops` Claude Code skill (`.claude/skills/`) that
 > automates the tunnel/QR flow and the cloud-backend tasks below.
 
-### Type-check & bundle
+### Type-check, lint & bundle
 
 ```bash
-npx tsc --noEmit
+npx tsc --noEmit                    # or: npm run typecheck
+npm run lint                        # ESLint (eslint-config-expo)
 npx expo export --platform android  # full Metro bundle
 ```
 
@@ -187,8 +191,8 @@ gracefully falls back to local results if they're unavailable.
   (`owner = auth.uid()`, protected by RLS).
 - **`profiles`** — auto-created on sign-up via a trigger.
 - **`user_state`** — per-user JSON blob (saved recipes, meal plan, grocery
-  checks/extras, tastes, cooked history with ratings, dietary preferences),
-  RLS-scoped to the owner.
+  checks/extras, tastes, cooked history with ratings, dietary preferences,
+  unit system, and user-created cookbooks), RLS-scoped to the owner.
 
 ### Auth & sync behaviour
 

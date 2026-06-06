@@ -29,7 +29,7 @@ type Stage = 'pick' | 'extract' | 'preview';
 
 export default function ImportScreen() {
   const { t } = useTheme();
-  const { saveRecipe } = useApp();
+  const { saveRecipe, cookbooks, addToCookbook } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -47,7 +47,11 @@ export default function ImportScreen() {
     setStage('extract');
     let imageBase64: string | undefined;
     if (s.kind === 'camera') {
-      const res = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.6 });
+      // Use the real camera when permitted; fall back to the photo library otherwise.
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      const res = perm.granted
+        ? await ImagePicker.launchCameraAsync({ base64: true, quality: 0.6 })
+        : await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.6 });
       if (!res.canceled && res.assets[0]?.base64) imageBase64 = res.assets[0].base64;
     }
     const r = await importRecipe({ url: url ?? (link || s.sample), sourceKind: s.kind, imageBase64 });
@@ -112,11 +116,15 @@ export default function ImportScreen() {
 
         <Txt style={{ fontSize: 13, fontWeight: '700', color: t.muted, marginBottom: 10 }}>Save to cookbook</Txt>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 9, paddingBottom: 4 }} style={{ marginBottom: 24 }}>
-          {COOKBOOKS.map((c) => <Tag key={c.id} t={t} active={cookbook === c.id} onPress={() => setCookbook(c.id)}>{c.name}</Tag>)}
+          {[...cookbooks, ...COOKBOOKS].map((c) => <Tag key={c.id} t={t} active={cookbook === c.id} onPress={() => setCookbook(c.id)}>{c.name}</Tag>)}
         </ScrollView>
 
         <PrimaryButton t={t} full icon={<Icon.bookmark size={18} sw={2.2} color={t.accentText} />}
-          onPress={async () => { await saveRecipe(r); router.replace(`/recipe/${r.id}`); }}>
+          onPress={async () => {
+            await saveRecipe(r);
+            if (cookbooks.some((c) => c.id === cookbook)) addToCookbook(cookbook, r.id);
+            router.replace(`/recipe/${r.id}`);
+          }}>
           Save recipe
         </PrimaryButton>
       </ScrollView>
@@ -132,7 +140,7 @@ export default function ImportScreen() {
         <IconBtn t={t} onPress={() => router.back()}><Icon.x size={20} sw={2.4} color={t.text} /></IconBtn>
       </View>
       <Txt style={{ fontSize: 14.5, color: t.muted, lineHeight: 22, marginBottom: 22 }}>
-        Paste a link from anywhere and we'll pull out the ingredients and steps automatically.
+        Paste a link from anywhere and we’ll pull out the ingredients and steps automatically.
       </Txt>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: t.surface2, borderRadius: 16, paddingLeft: 16, paddingRight: 6, paddingVertical: 6, marginBottom: 12, borderWidth: 1, borderColor: t.border }}>

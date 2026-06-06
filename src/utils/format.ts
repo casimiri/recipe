@@ -15,6 +15,40 @@ export function fmtQty(n: number): string {
   return n % 1 === 0 ? String(n) : n.toFixed(1).replace('.0', '');
 }
 
+// ── Unit system conversion ─────────────────────────────────
+// Convert between metric and imperial *within the same dimension* (weight↔weight,
+// volume↔volume) — never across (that needs per-ingredient density). tbsp/tsp are
+// common to both systems, so they're left untouched.
+export type UnitSystem = 'metric' | 'imperial';
+
+const TO_GRAMS: Record<string, number> = { g: 1, gram: 1, grams: 1, kg: 1000, oz: 28.3495, lb: 453.592, lbs: 453.592, pound: 453.592, pounds: 453.592 };
+const TO_ML: Record<string, number> = { ml: 1, l: 1000, cup: 236.588, cups: 236.588, 'fl oz': 29.5735 };
+const METRIC = new Set(['g', 'gram', 'grams', 'kg', 'ml', 'l']);
+const IMPERIAL = new Set(['oz', 'lb', 'lbs', 'pound', 'pounds', 'cup', 'cups', 'fl oz']);
+
+/** Convert an ingredient quantity+unit into the requested system. Unknown/shared
+ *  units (can, clove, pinch, tbsp, tsp, …) pass through unchanged. */
+export function convertUnit(qty: number, unit: string, system: UnitSystem): { qty: number; unit: string } {
+  const u = unit.trim().toLowerCase();
+  if (system === 'imperial' && METRIC.has(u)) {
+    if (u in TO_GRAMS) {
+      const g = qty * TO_GRAMS[u];
+      return g >= 453.592 ? { qty: g / 453.592, unit: 'lb' } : { qty: g / 28.3495, unit: 'oz' };
+    }
+    const ml = qty * TO_ML[u];
+    return ml >= 120 ? { qty: ml / 236.588, unit: 'cup' } : { qty: ml / 14.7868, unit: 'tbsp' };
+  }
+  if (system === 'metric' && IMPERIAL.has(u)) {
+    if (u in TO_GRAMS) {
+      const g = qty * TO_GRAMS[u];
+      return g >= 1000 ? { qty: g / 1000, unit: 'kg' } : { qty: Math.round(g), unit: 'g' };
+    }
+    const ml = qty * (TO_ML[u] ?? 0);
+    return ml >= 1000 ? { qty: ml / 1000, unit: 'l' } : { qty: Math.round(ml), unit: 'ml' };
+  }
+  return { qty, unit };
+}
+
 /** Offline substitution suggestions (used as a fallback before AI runs). */
 const SUBS: Record<string, string[]> = {
   butter: ['olive oil (¾ amount)', 'coconut oil', 'Greek yogurt'],

@@ -41,7 +41,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Recipe-Snap uses your photos to import recipes from screenshots and cookbook pages."
+          "photosPermission": "Recipe-Snap uses your photos to import recipes from screenshots and cookbook pages.",
+          "cameraPermission": "Recipe-Snap uses your camera to snap photos of recipes and cookbook pages."
         }
       ]
     ],
