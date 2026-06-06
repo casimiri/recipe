@@ -11,10 +11,11 @@ import type { Recipe } from '../data/types';
 type Variant = 'overlay' | 'caption' | 'compact';
 
 export function RecipeCard({
-  recipe: r, t, variant = 'overlay', tall, onOpen, onSave, saved, wide,
+  recipe: r, t, variant = 'overlay', tall, onOpen, onSave, saved, wide, onLongPress,
 }: {
   recipe: Recipe; t: Tokens; variant?: Variant; tall?: boolean; wide?: boolean;
   onOpen: (id: string) => void; onSave?: (id: string) => void; saved?: boolean;
+  onLongPress?: (id: string) => void;
 }) {
   const { lang } = useI18n();
   const cuisine = trEnum(r.cuisine, lang);
@@ -90,7 +91,7 @@ export function RecipeCard({
 
   // overlay (default)
   return (
-    <Pressable onPress={() => onOpen(r.id)}>
+    <Pressable onPress={() => onOpen(r.id)} onLongPress={onLongPress ? () => onLongPress(r.id) : undefined}>
       <Dish src={r.img} alt={r.title} radius={t.radius} style={{ width: '100%', height: wide ? 150 : (tall ? 230 : 150) }}>
         {TimePill}{SaveBtn}
         <View style={{ position: 'absolute', bottom: 8, right: 8 }}>

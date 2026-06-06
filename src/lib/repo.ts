@@ -170,6 +170,14 @@ export async function addRecipe(r: Recipe, userId?: string): Promise<void> {
   }
 }
 
+/** Delete a user's own recipe (RLS scopes the DB delete to owner = auth.uid()). */
+export async function deleteRecipe(id: string): Promise<void> {
+  if (recipeCache) recipeCache = recipeCache.filter((x) => x.id !== id);
+  if (isSupabaseConfigured && supabase) {
+    await supabase.from('recipes').delete().eq('id', id).then(() => {}, () => {});
+  }
+}
+
 async function readLocal(userId?: string): Promise<UserState | null> {
   const raw = await AsyncStorage.getItem(stateKey(userId)).catch(() => null);
   if (!raw) return null;

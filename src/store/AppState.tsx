@@ -3,7 +3,7 @@
 // applies updates locally, and persists in the background.
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
-  listRecipes, addRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
+  listRecipes, addRecipe, deleteRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
   DEFAULT_STATE, UserState, ProfileRow, CookLog, UserCookbook, AppReminder,
   getBillingConfig, getSubscription, startSubscription, aiPeriod, oneMonthFromNow, type BillingConfig,
 } from '../lib/repo';
@@ -22,6 +22,7 @@ interface AppCtx {
   toggleSave: (id: string) => void;
   isSaved: (id: string) => boolean;
   saveRecipe: (r: Recipe) => Promise<void>;
+  deleteCreatedRecipe: (id: string) => void;
   plan: WeekPlan;
   setPlan: (p: WeekPlan) => void;
   addToPlan: (day: string, meal: MealSlot, id: string | null) => void;
@@ -202,6 +203,31 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         created: s.created.includes(r.id) ? s.created : [r.id, ...s.created],
       }));
       await addRecipe(r, user?.id);
+    },
+    // Delete a recipe from the user's Created collection. If it's an owned
+    // import, also remove it from the catalog/DB and purge references; seed
+    // recipes are only dropped from `created` (the shared catalog is left intact).
+    deleteCreatedRecipe: (id) => {
+      const owned = !!localizedRecipes.find((x) => x.id === id)?.imported;
+      if (owned) {
+        setRecipes((rs) => rs.filter((x) => x.id !== id));
+        deleteRecipe(id);
+      }
+      setState((s) => {
+        const next = { ...s, created: s.created.filter((x) => x !== id) };
+        if (!owned) return next;
+        next.saved = s.saved.filter((x) => x !== id);
+        next.cooked = s.cooked.filter((c) => c.id !== id);
+        next.cookbooks = s.cookbooks.map((c) => ({ ...c, recipeIds: c.recipeIds.filter((x) => x !== id) }));
+        const plan: WeekPlan = {};
+        for (const [day, slots] of Object.entries(s.plan)) {
+          const ns: Partial<Record<MealSlot, string | null>> = {};
+          for (const [m, rid] of Object.entries(slots)) ns[m as MealSlot] = rid === id ? null : rid;
+          plan[day] = ns;
+        }
+        next.plan = plan;
+        return next;
+      });
     },
     plan: state.plan,
     setPlan: (p) => update({ plan: p }),

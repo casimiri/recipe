@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, ScrollView, Share } from 'react-native';
+import { View, Pressable, ScrollView, Share, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -16,7 +16,7 @@ type Tab = 'created' | 'saved' | 'cooked';
 export default function Profile() {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { saved, byId, isSaved, profile, cooked, rateCook } = useApp();
+  const { saved, byId, isSaved, profile, cooked, rateCook, deleteCreatedRecipe } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('created');
@@ -28,6 +28,19 @@ export default function Profile() {
   for (let i = 0; i < gridData.length; i += 2) rows.push(gridData.slice(i, i + 2));
   const cookedEntries = cooked.map((c) => ({ c, r: byId(c.id) })).filter((x) => x.r);
   const isEmpty = tab === 'cooked' ? cookedEntries.length === 0 : gridData.length === 0;
+
+  const confirmDeleteRecipe = (id: string) => {
+    const r = byId(id);
+    if (!r) return;
+    Alert.alert(
+      tr((s) => s.profile.deleteRecipe),
+      tr((s) => s.profile.deleteRecipeConfirm, { title: r.title }),
+      [
+        { text: tr((s) => s.common.cancel), style: 'cancel' },
+        { text: tr((s) => s.profile.deleteRecipe), style: 'destructive', onPress: () => deleteCreatedRecipe(id) },
+      ],
+    );
+  };
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
@@ -99,7 +112,8 @@ export default function Profile() {
             <View key={ri} style={{ flexDirection: 'row', gap: 14 }}>
               {row.map((r) => (
                 <View key={r.id} style={{ flex: 1 }}>
-                  <RecipeCard recipe={r} t={t} variant="overlay" onOpen={(id) => router.push(`/recipe/${id}`)} saved={isSaved(r.id)} />
+                  <RecipeCard recipe={r} t={t} variant="overlay" onOpen={(id) => router.push(`/recipe/${id}`)} saved={isSaved(r.id)}
+                    onLongPress={tab === 'created' ? confirmDeleteRecipe : undefined} />
                 </View>
               ))}
               {row.length === 1 ? <View style={{ flex: 1 }} /> : null}

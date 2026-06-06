@@ -236,6 +236,8 @@ export const en = {
     saved: 'Saved',
     cooked: 'Cooked',
     cookedOn: 'Cooked {date}',
+    deleteRecipe: 'Delete recipe',
+    deleteRecipeConfirm: 'Delete “{title}”? This removes it from your recipes.',
     shareMessage: 'Check out my recipes on Recipe-Snap — https://recipe-snap.app',
   },
   editProfile: {

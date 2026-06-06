@@ -235,6 +235,8 @@ export const de: UIStrings = {
     saved: 'Gespeichert',
     cooked: 'Gekocht',
     cookedOn: 'Gekocht am {date}',
+    deleteRecipe: 'Rezept löschen',
+    deleteRecipeConfirm: '„{title}“ löschen? Es wird aus deinen Rezepten entfernt.',
     shareMessage: 'Schau dir meine Rezepte auf Recipe-Snap an — https://recipe-snap.app',
   },
   editProfile: {
