@@ -7,7 +7,7 @@ import { useI18n } from '../../i18n';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
-import { Avatar, PrimaryButton } from '../../components/atoms';
+import { Avatar, PrimaryButton, Dish } from '../../components/atoms';
 import { RecipeCard } from '../../components/RecipeCard';
 import { compact } from '../../utils/format';
 
@@ -16,20 +16,18 @@ type Tab = 'created' | 'saved' | 'cooked';
 export default function Profile() {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { saved, byId, isSaved, profile, cooked } = useApp();
+  const { saved, byId, isSaved, profile, cooked, rateCook } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('created');
   const p = profile;
 
-  const data = {
-    created: p.created.map(byId).filter(Boolean),
-    saved: saved.map(byId).filter(Boolean),
-    cooked: cooked.map((c) => byId(c.id)).filter(Boolean),
-  }[tab] as NonNullable<ReturnType<typeof byId>>[];
-
-  const rows: typeof data[] = [];
-  for (let i = 0; i < data.length; i += 2) rows.push(data.slice(i, i + 2));
+  // created/saved render as a grid; cooked renders its own list (rating + date).
+  const gridData = (tab === 'saved' ? saved.map(byId) : p.created.map(byId)).filter(Boolean) as NonNullable<ReturnType<typeof byId>>[];
+  const rows: typeof gridData[] = [];
+  for (let i = 0; i < gridData.length; i += 2) rows.push(gridData.slice(i, i + 2));
+  const cookedEntries = cooked.map((c) => ({ c, r: byId(c.id) })).filter((x) => x.r);
+  const isEmpty = tab === 'cooked' ? cookedEntries.length === 0 : gridData.length === 0;
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
@@ -72,19 +70,42 @@ export default function Profile() {
         ))}
       </View>
 
-      {data.length === 0 ? <Txt style={{ textAlign: 'center', color: t.muted, paddingVertical: 40 }}>{tr((s) => s.common.nothingHere)}</Txt> : null}
-      <View style={{ gap: 14 }}>
-        {rows.map((row, ri) => (
-          <View key={ri} style={{ flexDirection: 'row', gap: 14 }}>
-            {row.map((r) => (
-              <View key={r.id} style={{ flex: 1 }}>
-                <RecipeCard recipe={r} t={t} variant="overlay" onOpen={(id) => router.push(`/recipe/${id}`)} saved={isSaved(r.id)} />
+      {isEmpty ? <Txt style={{ textAlign: 'center', color: t.muted, paddingVertical: 40 }}>{tr((s) => s.common.nothingHere)}</Txt> : null}
+
+      {tab === 'cooked' ? (
+        <View style={{ gap: 10 }}>
+          {cookedEntries.map(({ c, r }) => (
+            <Pressable key={c.id} onPress={() => router.push(`/recipe/${r!.id}`)}
+              style={{ flexDirection: 'row', gap: 13, alignItems: 'center', padding: 8, borderRadius: t.radiusSm + 6, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}>
+              <Dish src={r!.img} alt={r!.title} radius={t.radiusSm} style={{ width: 74, height: 74 }} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Txt style={{ fontWeight: '700', fontSize: 15, color: t.text }} numberOfLines={1}>{r!.title}</Txt>
+                {c.at ? <Txt style={{ fontSize: 12, color: t.muted, marginTop: 2 }}>{tr((s) => s.profile.cookedOn, { date: new Date(c.at).toLocaleDateString() })}</Txt> : null}
+                <View style={{ flexDirection: 'row', gap: 4, marginTop: 7 }}>
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Pressable key={n} hitSlop={6} onPress={() => rateCook(c.id, n)}>
+                      <Icon.star size={20} color={n <= c.rating ? t.star : t.border} />
+                    </Pressable>
+                  ))}
+                </View>
               </View>
-            ))}
-            {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
-          </View>
-        ))}
-      </View>
+            </Pressable>
+          ))}
+        </View>
+      ) : (
+        <View style={{ gap: 14 }}>
+          {rows.map((row, ri) => (
+            <View key={ri} style={{ flexDirection: 'row', gap: 14 }}>
+              {row.map((r) => (
+                <View key={r.id} style={{ flex: 1 }}>
+                  <RecipeCard recipe={r} t={t} variant="overlay" onOpen={(id) => router.push(`/recipe/${id}`)} saved={isSaved(r.id)} />
+                </View>
+              ))}
+              {row.length === 1 ? <View style={{ flex: 1 }} /> : null}
+            </View>
+          ))}
+        </View>
+      )}
     </ScrollView>
   );
 }

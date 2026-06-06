@@ -232,6 +232,7 @@ export const fr: UIStrings = {
     created: 'Créées',
     saved: 'Enregistrées',
     cooked: 'Cuisinées',
+    cookedOn: 'Cuisinée le {date}',
   },
   editProfile: {
     title: 'Modifier le profil',

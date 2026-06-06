@@ -36,6 +36,7 @@ interface AppCtx {
   setTastes: (t: string[]) => void;
   cooked: CookLog[];
   logCook: (id: string, rating: number) => void;
+  rateCook: (id: string, rating: number) => void;
   diet: string[];
   setDiet: (d: string[]) => void;
   units: 'metric' | 'imperial';
@@ -230,6 +231,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({
         ...s,
         cooked: [{ id, rating, at: Date.now() }, ...s.cooked.filter((c) => c.id !== id)],
+      })),
+    // Re-rate an existing cook in place (keeps its date + position).
+    rateCook: (id, rating) =>
+      setState((s) => ({
+        ...s,
+        cooked: s.cooked.map((c) => (c.id === id ? { ...c, rating } : c)),
       })),
     diet: state.diet,
     setDiet: (d) => update({ diet: d }),

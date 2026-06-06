@@ -233,6 +233,7 @@ export const en = {
     created: 'Created',
     saved: 'Saved',
     cooked: 'Cooked',
+    cookedOn: 'Cooked {date}',
   },
   editProfile: {
     title: 'Edit profile',
