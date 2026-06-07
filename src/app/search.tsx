@@ -17,7 +17,7 @@ import { CATEGORIES, FILTERS } from '../data/seed';
 export default function Search() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { recipes, isSaved, toggleSave, diet, recentSearches, addRecentSearch, clearRecentSearches } = useApp();
+  const { recipes, isSaved, toggleSave, recentSearches, addRecentSearch, clearRecentSearches } = useApp();
   // Trending = the catalog's most-saved recipes, using their (localized) titles.
   const trending = [...recipes].sort((a, b) => b.saves - a.saves).slice(0, 6);
   const router = useRouter();
@@ -34,10 +34,11 @@ export default function Search() {
 
   const toggle = (f: string) => setActive((a) => (a.includes(f) ? a.filter((x) => x !== f) : [...a, f]));
 
+  // Search spans the full catalog (diet preferences only shape the browse feed,
+  // not what you can find); the explicit filter chips still narrow results.
   const results = recipes.filter((r) => {
     const matchF = active.every((f) => r.tags.includes(f) || r.difficulty === f || r.meal === f);
-    const matchDiet = diet.every((d) => r.tags.includes(d));
-    return matchesQuery(r, q) && matchF && matchDiet;
+    return matchesQuery(r, q, lang) && matchF;
   });
 
   const empty = !q && active.length === 0;

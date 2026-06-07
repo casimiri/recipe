@@ -30,8 +30,10 @@ export default function Home() {
   // Dietary preferences apply as a baseline filter across the feed.
   const pool = diet.length ? recipes.filter((r) => diet.every((d) => r.tags.includes(d))) : recipes;
   // Inline search: when the user types, the feed is replaced by live results.
+  // Search spans the full catalog — the diet baseline only shapes the browse
+  // feed (pool), not what you can find by searching.
   const searching = q.trim().length > 0;
-  const queryResults = searching ? pool.filter((r) => matchesQuery(r, q)) : [];
+  const queryResults = searching ? recipes.filter((r) => matchesQuery(r, q, lang)) : [];
   const openResult = (id: string) => { addRecentSearch(q); router.push(`/recipe/${id}`); };
   const list = cat === 'popular' ? pool : pool.filter((r) => r.cuisine === cat || r.meal === cat);
   // Tastes are a soft signal: float matching recipes up without hiding any.
