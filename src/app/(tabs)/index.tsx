@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, ScrollView } from 'react-native';
+import { View, Pressable, ScrollView, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -16,10 +16,12 @@ import { SearchBar, CategoryRow } from '../../components/Home';
 export default function Home() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { recipes, isSaved, toggleSave, unread, profile, diet, tastes } = useApp();
+  const { recipes, isSaved, toggleSave, unread, profile, diet, tastes, refresh } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [cat, setCat] = useState('popular');
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => { setRefreshing(true); await refresh(); setRefreshing(false); };
 
   // Dietary preferences apply as a baseline filter across the feed.
   const pool = diet.length ? recipes.filter((r) => diet.every((d) => r.tags.includes(d))) : recipes;
@@ -34,7 +36,8 @@ export default function Home() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: 24 }}>
+      contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: 24 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} colors={[t.accent]} />}>
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
         <Pressable onPress={() => router.push('/(tabs)/profile')}>

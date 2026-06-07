@@ -1,7 +1,7 @@
 // AppState.tsx — central client state for recipes + user lists. Offline-first:
 // hydrates from the repo (Supabase when configured, else seed/AsyncStorage),
 // applies updates locally, and persists in the background.
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   listRecipes, addRecipe, updateRecipe as updateRecipeRepo, deleteRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
   addReview as addReviewRepo, deleteReview as deleteReviewRepo,
@@ -9,7 +9,8 @@ import {
   getBillingConfig, getSubscription, startSubscription, aiPeriod, oneMonthFromNow, type BillingConfig,
 } from '../lib/repo';
 import { RECIPES as SEED_RECIPES, PROFILE } from '../data/seed';
-import { useI18n } from '../i18n';
+import { useI18n, type Lang } from '../i18n';
+import { useTheme, type DarkPref } from '../theme/ThemeProvider';
 import { localizeRecipe } from '../i18n/recipes';
 import { syncMealReminders, clearMealReminders, type MealReminder } from '../lib/notify';
 import { buildGroceryList } from '../utils/grocery';
@@ -18,6 +19,8 @@ import type { Recipe, WeekPlan, MealSlot, GroceryItem, GroceryAisle, Profile } f
 
 interface AppCtx {
   ready: boolean;
+  /** Re-pull the recipe catalog + profile from the server (pull-to-refresh). */
+  refresh: () => Promise<void>;
   recipes: Recipe[];
   byId: (id: string) => Recipe | undefined;
   saved: string[];
@@ -90,7 +93,12 @@ const Ctx = createContext<AppCtx | null>(null);
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const { lang, tr } = useI18n();
+  const { lang, tr, setLang } = useI18n();
+  const { accent, darkPref, setAccent, setDarkPref } = useTheme();
+  // Stable handle to the provider setters so the hydrate effect can apply
+  // server-synced look/lang without taking the (per-render) setters as deps.
+  const applyAppearance = useRef({ setAccent, setDarkPref, setLang });
+  applyAppearance.current = { setAccent, setDarkPref, setLang };
   const [ready, setReady] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>(SEED_RECIPES);
   const [state, setState] = useState<UserState>(DEFAULT_STATE);
@@ -121,10 +129,26 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setState(sub ? { ...us, pro: sub.pro, proRenewsAt: sub.renewsAt ?? '', aiUsed: sub.aiUsed, aiPeriodKey: aiPeriod() } : us);
       setDbProfile(prof);
       setBilling(cfg);
+      // Apply the synced look + language over the device-local defaults the
+      // providers loaded first (so a signed-in user's choices follow them
+      // across devices). Sentinel '' means "never synced — keep device default".
+      if (us.accent) applyAppearance.current.setAccent(us.accent);
+      if (us.dark) applyAppearance.current.setDarkPref(us.dark as DarkPref);
+      if (us.lang) applyAppearance.current.setLang(us.lang as Lang);
       setReady(true);
     })();
     return () => { active = false; };
   }, [user?.id]);
+
+  // Mirror the live appearance/language into user_state so changes sync to the
+  // server (and migrate up on first login). No-op when already in sync, so the
+  // hydrate-time apply above doesn't bounce back as a redundant write.
+  useEffect(() => {
+    if (!ready) return;
+    setState((s) => (s.accent === accent && s.dark === darkPref && s.lang === lang
+      ? s
+      : { ...s, accent, dark: darkPref, lang }));
+  }, [ready, accent, darkPref, lang]);
 
   // Merge the DB profile over the seed profile, with the created list and the
   // recipes/cookbooks stat counts derived from real state (created = the user's
@@ -223,6 +247,17 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   const value: AppCtx = useMemo(() => ({
     ready,
+    // Pull-to-refresh: re-pull the catalog (busts the cache so other devices'
+    // imports/edits appear) + profile. Leaves user_state alone so unsynced local
+    // edits aren't clobbered — that layer syncs continuously on its own.
+    refresh: async () => {
+      const [rs, prof] = await Promise.all([
+        listRecipes(true),
+        user?.id ? getProfile(user.id) : Promise.resolve(null),
+      ]);
+      setRecipes([...rs]);
+      if (prof) setDbProfile(prof);
+    },
     recipes: ratedRecipes,
     byId: (id) => ratedRecipes.find((r) => r.id === id),
     saved: state.saved,

@@ -14,7 +14,7 @@ import { Sheet, Tag, PrimaryButton } from '../components/atoms';
 import { Paywall } from '../components/Paywall';
 import { formatPrice } from '../lib/repo';
 import { recipesHtml } from '../lib/share';
-import { FILTERS } from '../data/seed';
+import { FILTERS, TASTES } from '../data/seed';
 import { ACCENTS } from '../theme/tokens';
 import type { Tokens } from '../theme/tokens';
 
@@ -35,9 +35,10 @@ export default function Settings() {
   const { t, accent, darkPref, setAccent, setDarkPref } = useTheme();
   const { tr, lang, setLang } = useI18n();
   const { configured, signOut, deleteAccount } = useAuth();
-  const { diet, setDiet, units, setUnits, profile, saved, byId, pro, proRenewsAt, priceCents, currency } = useApp();
+  const { diet, setDiet, tastes, setTastes, units, setUnits, profile, saved, byId, pro, proRenewsAt, priceCents, currency } = useApp();
   const router = useRouter();
   const [dietOpen, setDietOpen] = useState(false);
+  const [tastesOpen, setTastesOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [payOpen, setPayOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -47,6 +48,11 @@ export default function Settings() {
   const dietLabel = diet.length === 0
     ? tr((s) => s.settings.dietAny)
     : diet.length === 1 ? diet[0] : tr((s) => s.settings.dietSelected, { count: diet.length });
+  const toggleTaste = (taste: string) =>
+    setTastes(tastes.includes(taste) ? tastes.filter((x) => x !== taste) : [...tastes, taste]);
+  const tastesLabel = tastes.length === 0
+    ? tr((s) => s.settings.tastesNone)
+    : tastes.length === 1 ? tastes[0] : tr((s) => s.settings.tastesSelected, { count: tastes.length });
   const langLabel = LANGS.find((l) => l.code === lang)?.native ?? 'English';
 
   // Export the user's created + saved recipes as a single PDF via the OS share sheet.
@@ -124,7 +130,8 @@ export default function Settings() {
           <Row icon="globe" label={tr((s) => s.settings.language)} t={t}
             right={<Txt style={{ fontSize: 13.5, color: t.muted }}>{langLabel}</Txt>}
             onPress={() => setLangOpen(true)} />
-          <Row icon="leaf" label={tr((s) => s.settings.dietary)} t={t} right={<Txt style={{ fontSize: 13.5, color: t.muted }}>{dietLabel}</Txt>} onPress={() => setDietOpen(true)} last />
+          <Row icon="leaf" label={tr((s) => s.settings.dietary)} t={t} right={<Txt style={{ fontSize: 13.5, color: t.muted }}>{dietLabel}</Txt>} onPress={() => setDietOpen(true)} />
+          <Row icon="sparkle" label={tr((s) => s.settings.tastes)} t={t} right={<Txt style={{ fontSize: 13.5, color: t.muted }}>{tastesLabel}</Txt>} onPress={() => setTastesOpen(true)} last />
         </View>
       </View>
 
@@ -178,6 +185,17 @@ export default function Settings() {
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <PrimaryButton t={t} ghost full onPress={() => setDiet([])}>{tr((s) => s.common.clear)}</PrimaryButton>
           <PrimaryButton t={t} full onPress={() => setDietOpen(false)}>{tr((s) => s.common.done)}</PrimaryButton>
+        </View>
+      </Sheet>
+
+      <Sheet open={tastesOpen} onClose={() => setTastesOpen(false)} t={t} title={tr((s) => s.settings.tastes)}>
+        <Txt style={{ fontSize: 13.5, color: t.muted, lineHeight: 20, marginBottom: 16 }}>{tr((s) => s.settings.tastesHint)}</Txt>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 22 }}>
+          {TASTES.map((taste) => <Tag key={taste} t={t} active={tastes.includes(taste)} onPress={() => toggleTaste(taste)}>{taste}</Tag>)}
+        </View>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <PrimaryButton t={t} ghost full onPress={() => setTastes([])}>{tr((s) => s.common.clear)}</PrimaryButton>
+          <PrimaryButton t={t} full onPress={() => setTastesOpen(false)}>{tr((s) => s.common.done)}</PrimaryButton>
         </View>
       </Sheet>
 

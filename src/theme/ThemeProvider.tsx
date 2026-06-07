@@ -3,7 +3,7 @@ import { useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { makeTokens, Tokens } from './tokens';
 
-type DarkPref = 'system' | 'light' | 'dark';
+export type DarkPref = 'system' | 'light' | 'dark';
 
 interface ThemeCtx {
   t: Tokens;

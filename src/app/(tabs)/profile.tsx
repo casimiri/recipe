@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Pressable, ScrollView, Share, Alert } from 'react-native';
+import { View, Pressable, ScrollView, Share, Alert, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -16,10 +16,12 @@ type Tab = 'created' | 'saved' | 'cooked';
 export default function Profile() {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { saved, byId, isSaved, profile, cooked, rateCook, deleteCreatedRecipe } = useApp();
+  const { saved, byId, isSaved, profile, cooked, rateCook, deleteCreatedRecipe, refresh } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('created');
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => { setRefreshing(true); await refresh(); setRefreshing(false); };
   const p = profile;
 
   // created/saved render as a grid; cooked renders its own list (rating + date).
@@ -44,7 +46,8 @@ export default function Profile() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: 24 }}>
+      contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: 24 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} colors={[t.accent]} />}>
       <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 4 }}>
         <Pressable onPress={() => router.push('/settings')} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.surface2, alignItems: 'center', justifyContent: 'center' }}>
           <Icon.settings size={21} sw={1.8} color={t.text} />

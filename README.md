@@ -16,13 +16,14 @@ planning, shopping for, and cooking recipes.
 - **Cook mode** — full-screen step-by-step with step **timers** (fire a local **notification** when they finish, so they alert you even if the app is backgrounded) and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
 - **Meal planner** — weekly calendar with breakfast / lunch / dinner slots, plus an optional **meal reminders** toggle that schedules weekly local notifications ("Time to cook X") for planned meals
 - **Smart grocery list** — **auto-generated from your meal plan**: the planned recipes' ingredients are aggregated (duplicates merged across recipes, quantities summed and shown in your unit system) and grouped by aisle or recipe, with progress, **add/remove your own items**, and an order-delivery flow
-- **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes
+- **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes; **taste preferences** (set at onboarding) are also editable in Settings and float matching recipes to the top of the home feed
 - **Cookbooks** — browse, **create and delete your own**, and add/remove recipes (new accounts start with a few **starter cookbooks** built from the catalog); plus **Profile** (created / saved / cooked tabs, with **star ratings + re-rate** on cooked recipes, and live **recipes / cookbooks / cooked** counts), **Notifications** (a real **activity feed** — your cooks, saves, meal-plan adds, imports and reviews, plus cook-timer reminders — with an unread badge), **Settings**
 - **Languages** — **English, French, Spanish, German**; defaults to the device language and switchable in Settings. Translates the whole UI, the seed recipe catalog (titles/descriptions/ingredients/steps), and **AI output** — imported recipes and the Substitute / Make-easier tools come back in the active language (enum-ish fields stay English so filtering keeps working)
 - **Units** — switch ingredient quantities between **metric and imperial** in Settings; conversion flows through recipe detail, cook mode, the grocery list, and exports
 - **Export** — save your created + saved recipes as a single PDF from Settings
 - **Recipe-Snap Pro** — free users get a set number of **AI actions per month** (recipe imports + Substitute / Make-easier); a **paywall** offers **Pro** for unlimited AI. Price and free quota are **admin-configurable** (a Supabase config row). The purchase is a **mock** flow (no real charge) with the payment call isolated so it can be swapped for Stripe / store IAP later
-- **Theme** — **System / Light / Dark** mode and an **accent-colour picker** in Settings (the canonical "Sunny" visual direction)
+- **Theme** — **System / Light / Dark** mode and an **accent-colour picker** in Settings (the canonical "Sunny" visual direction). Theme, accent and language all **sync across devices** for signed-in users
+- **Pull-to-refresh** — Home and Profile pull-to-refresh re-pull the recipe catalog (so imports/edits from other devices appear)
 
 ## Tech stack
 
@@ -118,7 +119,8 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=<anon-or-sb_publishable key>
 `EXPO_PUBLIC_*` vars are inlined into the bundle (safe for the anon /
 publishable key — **never** put the service-role or OpenAI key here). When
 present, the app uses real email/password auth and syncs each user's saved
-recipes, meal plan, grocery list, tastes, and cooked history to Postgres.
+recipes, meal plan, grocery list, tastes, cooked history, and appearance /
+language preferences to Postgres.
 
 ### 2. Apply the schema + seed
 
@@ -259,8 +261,9 @@ on conflict (id) do nothing;
   ratings, dietary preferences,
   unit system, cookbooks (seeded with starter collections for new accounts),
   recent searches, app-generated reminders
-  + a last-seen timestamp for the notifications badge, and the cached Pro flag +
-  monthly AI-usage counter), RLS-scoped to the owner.
+  + a last-seen timestamp for the notifications badge, the cached Pro flag +
+  monthly AI-usage counter, and the synced **appearance** (accent, dark-mode
+  preference) + **language**), RLS-scoped to the owner.
 - **`app_config`** — single admin-tunable row (monthly `price_cents`, `currency`,
   `free_ai_quota`); world-readable so the app can show the price and enforce the
   quota, writable only by the service role (admin via SQL/dashboard).

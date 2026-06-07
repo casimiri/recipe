@@ -64,6 +64,12 @@ export interface UserState {
   mealReminders: boolean;
   /** The user's own 1–5 rating per recipe id (blended into the displayed rating). */
   ratings: Record<string, number>;
+  /** Synced accent colour ('' = use the device/provider default). */
+  accent: string;
+  /** Synced dark-mode preference ('' = use the device/provider default). */
+  dark: '' | 'system' | 'light' | 'dark';
+  /** Synced UI language ('' = use the device locale). */
+  lang: string;
 }
 
 export const DEFAULT_STATE: UserState = {
@@ -95,6 +101,9 @@ export const DEFAULT_STATE: UserState = {
   aiPeriodKey: '',
   mealReminders: false,
   ratings: {},
+  accent: '',
+  dark: '',
+  lang: '',
 };
 
 const GUEST = 'guest';
@@ -156,8 +165,8 @@ function recipeToRow(r: Recipe, userId?: string) {
   };
 }
 
-export async function listRecipes(): Promise<Recipe[]> {
-  if (recipeCache) return recipeCache;
+export async function listRecipes(force = false): Promise<Recipe[]> {
+  if (recipeCache && !force) return recipeCache;
   if (isSupabaseConfigured && supabase) {
     const { data, error } = await supabase.from('recipes').select('*');
     if (!error && data && data.length) {

@@ -327,7 +327,9 @@ export default function RecipeDetail() {
 
           {/* Reviews */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 32, marginBottom: 14 }}>
-            <Txt style={{ fontWeight: '800', fontSize: 20, color: t.text }}>{tr((s) => s.recipe.reviews)}</Txt>
+            <Txt style={{ fontWeight: '800', fontSize: 20, color: t.text }}>
+              {tr((s) => s.recipe.reviews)}{reviews && reviews.length > 0 ? ` (${reviews.length})` : ''}
+            </Txt>
             {session ? (
               <Pressable onPress={openReview} hitSlop={6} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Icon.edit size={15} sw={2} color={t.accent} />
