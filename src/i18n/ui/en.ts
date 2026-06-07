@@ -178,6 +178,7 @@ export const en = {
     fromScratch: 'Start from scratch',
     reviewRecipe: 'Review recipe',
     extractedBanner: 'Recipe extracted — tap any field to edit before saving.',
+    blankBanner: 'Give it a title, then save and fill in the rest.',
     change: 'Change',
     ingredientsCount: 'Ingredients · {count}',
     stepsCount: 'Steps · {count}',

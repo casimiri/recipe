@@ -28,6 +28,19 @@ const SOURCES: { kind: SourceKind; icon: keyof typeof Icon; label: string; sampl
 
 type Stage = 'pick' | 'extract' | 'preview';
 
+// A blank recipe for the "Write your own" flow — no AI involved. The user sets
+// a title in the preview, saves, then fills in the rest via the edit screen.
+const blankRecipe = (sourceName: string): Recipe => ({
+  id: `manual-${Date.now()}`,
+  title: '', cuisine: '', meal: '', time: 0, servings: 2, cal: 0, difficulty: 'Easy',
+  rating: 0, reviews: 0, img: '',
+  source: { kind: 'manual', handle: '', name: sourceName },
+  saves: 0, cooked: 0, imported: true,
+  desc: '', tags: [],
+  nutrition: { cal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0 },
+  ingredients: [], steps: [],
+});
+
 export default function ImportScreen() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
@@ -56,9 +69,16 @@ export default function ImportScreen() {
   const [animDone, setAnimDone] = useState(false);
 
   const begin = async (s: typeof SOURCES[number], url?: string) => {
+    setSrc(s);
+    // Writing your own recipe is free — no AI call and no quota. Open a blank
+    // editable preview straight away instead of running the extraction flow.
+    if (s.kind === 'manual') {
+      setRecipe(blankRecipe(srcLabel(s)));
+      setStage('preview');
+      return;
+    }
     if (!canUseAi) { setPayOpen(true); return; }
     recordAiUse();
-    setSrc(s);
     setRecipe(null);
     setAnimDone(false);
     setStage('extract');
@@ -92,7 +112,7 @@ export default function ImportScreen() {
         <ScreenHeader title={tr((s) => s.import.reviewRecipe)} onBack={() => setStage('pick')} />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, backgroundColor: t.accentSofter, paddingVertical: 11, paddingHorizontal: 14, borderRadius: t.radiusSm, marginBottom: 20 }}>
           <Icon.sparkle size={17} color={t.accent} />
-          <Txt style={{ color: t.accent, fontSize: 13, fontWeight: '700', flex: 1 }}>{tr((s) => s.import.extractedBanner)}</Txt>
+          <Txt style={{ color: t.accent, fontSize: 13, fontWeight: '700', flex: 1 }}>{tr((s) => src.kind === 'manual' ? s.import.blankBanner : s.import.extractedBanner)}</Txt>
         </View>
 
         <Dish src={r.img} alt={r.title} radius={t.radius} style={{ width: '100%', height: 170, marginBottom: 16 }}>
@@ -140,7 +160,7 @@ export default function ImportScreen() {
           </>
         ) : null}
 
-        <PrimaryButton t={t} full icon={<Icon.bookmark size={18} sw={2.2} color={t.accentText} />}
+        <PrimaryButton t={t} full disabled={!r.title.trim()} icon={<Icon.bookmark size={18} sw={2.2} color={t.accentText} />}
           onPress={async () => {
             await saveRecipe(r);
             if (cookbooks.some((c) => c.id === cookbook)) addToCookbook(cookbook, r.id);

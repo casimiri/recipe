@@ -177,6 +177,7 @@ export const es: UIStrings = {
     fromScratch: 'Empezar de cero',
     reviewRecipe: 'Revisar receta',
     extractedBanner: 'Receta extraída — toca cualquier campo para editarlo antes de guardar.',
+    blankBanner: 'Ponle un título, luego guarda y completa el resto.',
     change: 'Cambiar',
     ingredientsCount: 'Ingredientes · {count}',
     stepsCount: 'Pasos · {count}',
