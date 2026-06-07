@@ -20,6 +20,7 @@ import { listReviews, type Review } from '../../lib/repo';
 import { fmtQty, convertUnit } from '../../utils/format';
 import { recipeHtml, recipeUrl } from '../../lib/share';
 import { aiTool } from '../../lib/ai';
+import { IngredientIcon, useIngredientImage } from '../../components/IngredientImage';
 import { DAYS } from '../../data/seed';
 import type { Tokens } from '../../theme/tokens';
 import type { Ingredient, MealSlot } from '../../data/types';
@@ -59,7 +60,8 @@ export default function RecipeDetail() {
   const [checked, setChecked] = useState<string[]>([]);
   const [easier, setEasier] = useState(false);
   const [easySteps, setEasySteps] = useState<{ t: string; d: string }[] | null>(null);
-  const [sheet, setSheet] = useState<null | 'sub' | 'scale' | 'plan' | 'added' | 'planned' | 'share' | 'cookbook' | 'addedCb' | 'review'>(null);
+  const [sheet, setSheet] = useState<null | 'sub' | 'scale' | 'plan' | 'added' | 'planned' | 'share' | 'cookbook' | 'addedCb' | 'review' | 'image'>(null);
+  const ingImg = useIngredientImage(() => setPayOpen(true));
   const [newCb, setNewCb] = useState('');
   const [reviews, setReviews] = useState<Review[] | null>(null);
   const [reviewText, setReviewText] = useState('');
@@ -279,9 +281,13 @@ export default function RecipeDetail() {
                     }}>
                       {on ? <Icon.check size={14} sw={3} color={t.accentText} /> : null}
                     </Pressable>
+                    <IngredientIcon item={ing.item} t={t} />
                     <Txt style={{ flex: 1, fontSize: 14.5, color: t.text, textDecorationLine: on ? 'line-through' : 'none', opacity: on ? 0.5 : 1 }}>
                       {q ? <Txt style={{ fontWeight: '700', fontSize: 14.5 }}>{q}{conv.unit ? ' ' + conv.unit : ''} </Txt> : null}{ing.item}
                     </Txt>
+                    <Pressable onPress={() => ingImg.view(ing.item)} hitSlop={6} style={{ padding: 4 }}>
+                      <Icon.eye size={18} sw={2} color={t.faint} />
+                    </Pressable>
                     <Pressable onPress={() => openSub(ing)} hitSlop={6} style={{ padding: 4 }}>
                       <Icon.swap size={17} sw={2} color={t.faint} />
                     </Pressable>
@@ -290,22 +296,6 @@ export default function RecipeDetail() {
               })}
             </View>
           ))}
-
-          <PrimaryButton t={t} ghost full icon={<Icon.cart size={18} sw={2} color={t.text} />} style={{ marginTop: 16 }}
-            onPress={() => {
-              const n = addGroceryItems(
-                r.ingredients.map((ing) => {
-                  const conv = convertUnit(ing.qty * scale, ing.unit, units);
-                  const q = fmtQty(conv.qty);
-                  return { name: ing.item, qty: q ? `${q}${conv.unit ? ' ' + conv.unit : ''}` : '' };
-                }),
-                r.title,
-              );
-              setAddedCount(n);
-              setSheet('added');
-            }}>
-            {tr((s) => s.recipe.addAllToList)}
-          </PrimaryButton>
 
           {/* Directions */}
           <Txt style={{ fontWeight: '800', fontSize: 20, color: t.text, marginTop: 32, marginBottom: 16 }}>
@@ -420,13 +410,30 @@ export default function RecipeDetail() {
         </View>
       </ScrollView>
 
-      {/* Sticky cook button */}
+      {/* Sticky action buttons */}
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingBottom: insets.bottom + 14, paddingTop: 24 }}>
         <Scrim colors={['transparent', t.surface]} />
-        <PrimaryButton t={t} full icon={<Icon.play size={17} color={t.accentText} />} style={{ paddingVertical: 17 }}
-          onPress={() => router.push({ pathname: '/cook/[id]', params: { id: r.id, servings } })}>
-          {tr((s) => s.recipe.startCooking)}
-        </PrimaryButton>
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <PrimaryButton t={t} ghost full icon={<Icon.cart size={18} sw={2} color={t.text} />} style={{ paddingVertical: 17, backgroundColor: t.accentSoft, borderWidth: 0 }}
+            onPress={() => {
+              const n = addGroceryItems(
+                r.ingredients.map((ing) => {
+                  const conv = convertUnit(ing.qty * scale, ing.unit, units);
+                  const q = fmtQty(conv.qty);
+                  return { name: ing.item, qty: q ? `${q}${conv.unit ? ' ' + conv.unit : ''}` : '' };
+                }),
+                r.title,
+              );
+              setAddedCount(n);
+              setSheet('added');
+            }}>
+            {tr((s) => s.recipe.addAllToList)}
+          </PrimaryButton>
+          <PrimaryButton t={t} full icon={<Icon.play size={17} color={t.accentText} />} style={{ paddingVertical: 17 }}
+            onPress={() => router.push({ pathname: '/cook/[id]', params: { id: r.id, servings } })}>
+            {tr((s) => s.recipe.startCooking)}
+          </PrimaryButton>
+        </View>
       </View>
 
       {/* Substitute sheet */}
@@ -555,6 +562,8 @@ export default function RecipeDetail() {
           </Pressable>
         ) : null}
       </Sheet>
+
+      {ingImg.element}
 
       <Paywall open={payOpen} onClose={() => setPayOpen(false)} reachedLimit />
     </View>

@@ -11,11 +11,11 @@ planning, shopping for, and cooking recipes.
 - **Onboarding** — welcome + 3 value slides + taste preferences
 - **Home** — greeting, search, a **"Today" card** with today's planned breakfast/lunch/dinner from your meal plan (tap straight to the recipe), a **recently-viewed** rail, category pills, recipe grid **personalized by your onboarding tastes** (matching recipes float to the top; shows as "For you")
 - **Search** — live filtering, trending searches, **recent searches** (per-user, synced), browse-by-category, filter sheet
-- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **community reviews** (read everyone's, write/edit/delete your own rating + comment; a star tap is a quick rating, and real reviews blend into the recipe's shown score **everywhere** via a DB trigger), AI tools (**Scale / Substitute / Make easier**), **add ingredients to the grocery list**, **add to cookbook**, **edit** your own imported recipes, and **share & export** (copy link, native share sheet, print, save as **PDF**)
+- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **per-ingredient food icons** + a **View image** button (an AI-generated photo of the ingredient, generated once then cached), **community reviews** (read everyone's, write/edit/delete your own rating + comment; a star tap is a quick rating, and real reviews blend into the recipe's shown score **everywhere** via a DB trigger), AI tools (**Scale / Substitute / Make easier**), **add ingredients to the grocery list**, **add to cookbook**, **edit** your own imported recipes, and **share & export** (copy link, native share sheet, print, save as **PDF**)
 - **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to your library, optionally filing it into one of your cookbooks
 - **Cook mode** — full-screen step-by-step with step **timers** (fire a local **notification** when they finish, so they alert you even if the app is backgrounded) and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
 - **Meal planner** — weekly calendar with breakfast / lunch / dinner slots, plus an optional **meal reminders** toggle that schedules weekly local notifications ("Time to cook X") for planned meals
-- **Smart grocery list** — **auto-generated from your meal plan**: the planned recipes' ingredients are aggregated (duplicates merged across recipes, quantities summed — and **scaled up when a recipe is planned for several days** — shown in your unit system) and grouped by aisle or recipe, with progress, **add/remove your own items** (with an optional quantity), **pantry staples** (long-press, tap the −, or swipe a planned item to mark "always have" and hide it; swipe your own items to remove), and **share/export the list** (native share sheet)
+- **Smart grocery list** — **auto-generated from your meal plan**: the planned recipes' ingredients are aggregated (duplicates merged across recipes, quantities summed — and **scaled up when a recipe is planned for several days** — shown in your unit system) and grouped by aisle or recipe, each with a **food icon** + **View image** (the same AI ingredient photo as the recipe screen), with progress, **add/remove your own items** (with an optional quantity), **pantry staples** (long-press, tap the −, or swipe a planned item to mark "always have" and hide it; swipe your own items to remove), and **share/export the list** (native share sheet)
 - **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes; **taste preferences** (set at onboarding) are also editable in Settings and float matching recipes to the top of the home feed
 - **Cookbooks** — browse, **create and delete your own**, and add/remove recipes (new accounts start with a few **starter cookbooks** built from the catalog); plus **Profile** (created / saved / cooked / reviewed tabs, with **star ratings + re-rate** on cooked recipes, and live **recipes / cookbooks / cooked** counts), **Notifications** (a real **activity feed** — your cooks, saves, meal-plan adds, imports and reviews, plus cook-timer reminders — with an unread badge), **Settings**
 - **Languages** — **English, French, Spanish, German**; defaults to the device language and switchable in Settings. Translates the whole UI, the seed recipe catalog (titles/descriptions/ingredients/steps), and **AI output** — imported recipes and the Substitute / Make-easier tools come back in the active language (enum-ish fields stay English so filtering keeps working)
@@ -50,18 +50,19 @@ src/
     (tabs)/            home, cookbooks, planner, grocery, profile + pill tab bar
     recipe/[id].tsx    cook/[id].tsx  cookbook/[id].tsx
     import.tsx  edit-recipe.tsx  search.tsx  notifications.tsx  settings.tsx  cook-done.tsx
-  components/          Icon, Txt, atoms, RecipeCard, Home, Screen, CookbookCover
+  components/          Icon, Txt, atoms, RecipeCard, Home, Screen, CookbookCover, IngredientImage
   theme/               tokens (Sunny), ThemeProvider (accent + dark, persisted)
   data/                seed content + types
   store/               auth + AppState contexts
   lib/                 supabase client, repo (data access), ai (edge-function client), share (print/PDF/export HTML), notify (local cook-timer notifications)
   i18n/                I18nProvider + tr() selector, ui/{en,fr,es,de} dictionaries, enums + recipe content localization
-  utils/               formatting helpers (incl. metric↔imperial unit conversion) + grocery-list builder
+  utils/               formatting helpers (incl. metric↔imperial unit conversion) + grocery-list builder + ingredient→emoji map
 supabase/
-  migrations/                0001 schema · 0002 avatars bucket · 0003 billing · 0004 reviews · 0005 review-rating trigger
+  migrations/                0001 schema · 0002 avatars · 0003 billing · 0004 reviews · 0005 review-rating trigger · 0006 ingredient-images bucket
   seed.sql                   shared recipe catalog (generated)
   functions/import-recipe/   OpenAI recipe extraction (AI-quota gated)
   functions/ai-tools/        OpenAI substitutions + step simplification (AI-quota gated)
+  functions/ingredient-image/ OpenAI image gen → cached ingredient photo (AI-quota gated)
   functions/subscribe/       mock Pro purchase (flips subscriptions.pro)
   functions/delete-account/  removes the user's rows, avatars + auth record
   functions/_shared/         cors + billing helpers (quota / Pro checks)
@@ -191,6 +192,7 @@ supabase secrets set SB_SERVICE_ROLE_KEY=<service-role key>
 
 supabase functions deploy import-recipe
 supabase functions deploy ai-tools
+supabase functions deploy ingredient-image
 supabase functions deploy subscribe
 ```
 
@@ -200,6 +202,11 @@ supabase functions deploy subscribe
   Storage bucket and uses that as the recipe's hero image (so the imported
   recipe shows a relevant picture, not a stock one).
 - **`ai-tools`** — returns ingredient substitutions or simplified step text.
+- **`ingredient-image`** — returns a photo of an ingredient: serves the cached
+  one from the public `ingredient-images` bucket if present, otherwise generates
+  it with OpenAI image gen (`OPENAI_IMAGE_MODEL`, default **`gpt-image-1`**),
+  uploads it, and returns the URL. Generation counts against the AI quota;
+  cached hits are free.
 - **`subscribe`** — mock Pro purchase: flips the signed-in user's
   `subscriptions.pro`, valid for **one month** from the purchase date (the single seam a real Stripe/RevenueCat/IAP
   integration would replace).
@@ -277,6 +284,9 @@ on conflict (id) do nothing;
   functions (service role) write it.
 - **Storage `recipe-images`** — public bucket holding photos captured during
   import; the uploaded photo becomes the imported recipe's hero image.
+- **Storage `ingredient-images`** — public bucket of AI-generated ingredient
+  photos, keyed by ingredient slug (e.g. `garlic.png`), written by the
+  `ingredient-image` function and shared across users.
 - **Storage `avatars`** — public bucket holding profile photos, namespaced per
   user (`<uid>/…`, RLS write-scoped to the owner); the public URL is stored on
   `profiles.avatar` so it renders and syncs across devices.

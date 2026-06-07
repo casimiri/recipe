@@ -149,6 +149,8 @@ export const es: UIStrings = {
     savePdf: 'Guardar PDF',
     ingredientsAdded: '{count} ingredientes de {title} añadidos.',
     alreadyOnList: 'Todo de {title} ya está en tu lista.',
+    generatingImage: 'Generando imagen…',
+    imageFailed: 'No se pudo cargar una imagen. Inténtalo más tarde.',
     noCookbooks: 'Aún no hay recetarios — crea uno abajo.',
     create: 'Crear',
     addedToCookbook: 'Añadido al recetario',

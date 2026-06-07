@@ -150,6 +150,8 @@ export const en = {
     savePdf: 'Save PDF',
     ingredientsAdded: '{count} ingredients from {title} added.',
     alreadyOnList: 'Everything from {title} is already on your list.',
+    generatingImage: 'Generating image…',
+    imageFailed: 'Couldn’t load an image for this. Try again later.',
     noCookbooks: 'No cookbooks yet — create one below.',
     create: 'Create',
     addedToCookbook: 'Added to cookbook',

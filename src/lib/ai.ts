@@ -87,3 +87,34 @@ export async function aiTool(args: {
     steps: args.recipe.steps.map((s) => ({ t: s.t, d: s.d.split('.')[0] + '.' })),
   };
 }
+
+const SUPA_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+
+/** Slug for an ingredient's cached image path — must match the edge function. */
+export function ingredientSlug(item: string): string {
+  return item.split(',')[0].trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+/** Deterministic public URL where an ingredient's cached image would live (or null offline). */
+export function ingredientImageUrl(item: string): string | null {
+  const slug = ingredientSlug(item);
+  if (!SUPA_URL || !slug) return null;
+  return `${SUPA_URL}/storage/v1/object/public/ingredient-images/${slug}.png`;
+}
+
+/**
+ * Fetch (or generate, then cache) an AI photo of an ingredient via the
+ * ingredient-image function. Generation counts against the AI quota server-side;
+ * cached hits are free. Returns {} when unavailable (offline / no credentials).
+ */
+export async function ingredientImage(item: string): Promise<{ url?: string; generated?: boolean; quotaExceeded?: boolean }> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase.functions.invoke('ingredient-image', { body: { item } });
+      if (!error && data) return data;
+    } catch {
+      // fall through
+    }
+  }
+  return {};
+}

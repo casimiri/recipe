@@ -9,6 +9,8 @@ import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
 import { IconBtn, PrimaryButton, Tag } from '../../components/atoms';
+import { Paywall } from '../../components/Paywall';
+import { IngredientIcon, useIngredientImage } from '../../components/IngredientImage';
 import type { GroceryAisle, GroceryItem } from '../../data/types';
 
 export default function Grocery() {
@@ -21,6 +23,8 @@ export default function Grocery() {
   const [groupBy, setGroupBy] = useState<'aisle' | 'recipe'>('aisle');
   const [adding, setAdding] = useState('');
   const [addingQty, setAddingQty] = useState('');
+  const [payOpen, setPayOpen] = useState(false);
+  const ingImg = useIngredientImage(() => setPayOpen(true));
   const submitAdd = () => { if (adding.trim()) { addGroceryItem(adding, addingQty); setAdding(''); setAddingQty(''); } };
 
   const allItems = [...groceryAisles.flatMap((g) => g.items), ...groceryExtra];
@@ -112,10 +116,14 @@ export default function Grocery() {
                   <View style={{ width: 24, height: 24, borderRadius: 8, borderWidth: on ? 0 : 2, borderColor: t.borderStrong, backgroundColor: on ? t.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
                     {on ? <Icon.check size={14} sw={3} color={t.accentText} /> : null}
                   </View>
+                  <IngredientIcon item={item.name} t={t} size={26} />
                   <View style={{ flex: 1, opacity: on ? 0.42 : 1 }}>
                     <Txt style={{ fontSize: 15, fontWeight: '600', color: t.text, textDecorationLine: on ? 'line-through' : 'none' }}>{item.name}</Txt>
                     {groupBy === 'aisle' ? <Txt style={{ fontSize: 12, color: t.faint }}>{item.from}</Txt> : null}
                   </View>
+                  <Pressable onPress={() => ingImg.view(item.name)} hitSlop={8} style={{ padding: 4 }}>
+                    <Icon.eye size={17} sw={2} color={t.faint} />
+                  </Pressable>
                   {extra ? (
                     <Pressable onPress={() => removeGroceryItem(item.id)} hitSlop={10} style={{ padding: 4 }}>
                       <Icon.x size={18} sw={2.2} color={t.muted} />
@@ -156,6 +164,9 @@ export default function Grocery() {
       ) : null}
 
       <PrimaryButton t={t} ghost full onPress={() => setGroceryChecked([])}>{tr((s) => s.grocery.clearChecked)}</PrimaryButton>
+
+      {ingImg.element}
+      <Paywall open={payOpen} onClose={() => setPayOpen(false)} reachedLimit />
     </ScrollView>
   );
 }
