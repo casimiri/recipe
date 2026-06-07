@@ -24,7 +24,7 @@ export interface UserCookbook {
 /** An app-generated activity/notification entry, newest first. */
 export interface AppReminder {
   id: string;
-  kind: 'cooked' | 'plan' | 'save' | 'import' | 'timer';
+  kind: 'cooked' | 'plan' | 'save' | 'import' | 'timer' | 'review';
   /** Optional pre-rendered text (cook timer); otherwise derived from kind + recipe. */
   text?: string;
   recipe?: string;
@@ -240,6 +240,17 @@ export async function addReview(
     { recipe_id: recipeId, user_id: userId, rating, body, author_name: author.name, author_avatar: author.avatar },
     { onConflict: 'recipe_id,user_id' },
   );
+  return !error;
+}
+
+/** Delete the signed-in user's review for a recipe (RLS scopes to the author). */
+export async function deleteReview(recipeId: string, userId: string): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase) return false;
+  const { error } = await supabase
+    .from('recipe_reviews')
+    .delete()
+    .eq('recipe_id', recipeId)
+    .eq('user_id', userId);
   return !error;
 }
 

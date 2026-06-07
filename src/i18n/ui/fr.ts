@@ -112,6 +112,8 @@ export const fr: UIStrings = {
     noReviews: 'Pas encore d’avis — soyez le premier.',
     reviewPlaceholder: 'Partagez votre avis…',
     postReview: 'Publier l’avis',
+    editYourReview: 'Modifier votre avis',
+    deleteReview: 'Supprimer l’avis',
     aiTools: 'Outils IA',
     scale: 'Ajuster',
     substitute: 'Substituer',
@@ -291,6 +293,7 @@ export const fr: UIStrings = {
     youPlanned: 'Vous avez ajouté {title} à votre menu',
     youSaved: 'Vous avez enregistré {title}',
     youImported: 'Vous avez importé {title}',
+    youReviewed: 'Vous avez évalué {title}',
     timerFinished: 'Minuteur terminé pendant la cuisson de {title}',
   },
   settings: {

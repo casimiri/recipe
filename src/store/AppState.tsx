@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   listRecipes, addRecipe, updateRecipe as updateRecipeRepo, deleteRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
-  addReview as addReviewRepo,
+  addReview as addReviewRepo, deleteReview as deleteReviewRepo,
   DEFAULT_STATE, UserState, ProfileRow, CookLog, UserCookbook, AppReminder,
   getBillingConfig, getSubscription, startSubscription, aiPeriod, oneMonthFromNow, type BillingConfig,
 } from '../lib/repo';
@@ -49,6 +49,8 @@ interface AppCtx {
   setRecipeRating: (id: string, rating: number) => void;
   /** Post the signed-in user's review (rating + text); false if not signed in. */
   addReview: (recipeId: string, rating: number, body: string) => Promise<boolean>;
+  /** Remove the signed-in user's review for a recipe. */
+  deleteReview: (recipeId: string) => Promise<boolean>;
   diet: string[];
   setDiet: (d: string[]) => void;
   units: 'metric' | 'imperial';
@@ -325,7 +327,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       if (!user?.id) return false;
       // Keep the user's private star rating in sync with their review rating.
       setState((s) => ({ ...s, ratings: { ...s.ratings, [recipeId]: rating } }));
-      return addReviewRepo(recipeId, user.id, rating, body, { name: profile.name, avatar: profile.avatar || null });
+      const ok = await addReviewRepo(recipeId, user.id, rating, body, { name: profile.name, avatar: profile.avatar || null });
+      if (ok) logActivity('review', recipeId);
+      return ok;
+    },
+    deleteReview: async (recipeId) => {
+      if (!user?.id) return false;
+      return deleteReviewRepo(recipeId, user.id);
     },
     // Re-rate an existing cook in place (keeps its date + position).
     rateCook: (id, rating) =>

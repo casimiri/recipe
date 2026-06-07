@@ -47,7 +47,7 @@ function AiChip({ t, icon, label, onPress, active }: { t: Tokens; icon: React.Re
 export default function RecipeDetail() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse, ratings, setRecipeRating, addReview } = useApp();
+  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse, ratings, setRecipeRating, addReview, deleteReview } = useApp();
   const { session } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -136,9 +136,13 @@ export default function RecipeDetail() {
     return () => { active = false; };
   }, [r.id]);
 
+  // The user's own review for this recipe, if they've written one.
+  const myReview = reviews?.find((rv) => rv.userId === session?.user?.id) ?? null;
+
   const openReview = () => {
-    setReviewStars(ratings[r.id] ?? 0);
-    setReviewText('');
+    // Editing keeps your prior rating + text; a fresh review seeds from your stars.
+    setReviewStars(myReview?.rating ?? ratings[r.id] ?? 0);
+    setReviewText(myReview?.body ?? '');
     setSheet('review');
   };
 
@@ -146,6 +150,16 @@ export default function RecipeDetail() {
     if (!reviewStars) return;
     setReviewBusy(true);
     const ok = await addReview(r.id, reviewStars, reviewText.trim());
+    setReviewBusy(false);
+    if (!ok) return;
+    setSheet(null);
+    const rs = await listReviews(r.id);
+    setReviews(rs);
+  };
+
+  const deleteMyReview = async () => {
+    setReviewBusy(true);
+    const ok = await deleteReview(r.id);
     setReviewBusy(false);
     if (!ok) return;
     setSheet(null);
@@ -317,7 +331,7 @@ export default function RecipeDetail() {
             {session ? (
               <Pressable onPress={openReview} hitSlop={6} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Icon.edit size={15} sw={2} color={t.accent} />
-                <Txt style={{ color: t.accent, fontWeight: '700', fontSize: 13.5 }}>{tr((s) => s.recipe.writeReview)}</Txt>
+                <Txt style={{ color: t.accent, fontWeight: '700', fontSize: 13.5 }}>{tr((s) => (myReview ? s.recipe.editYourReview : s.recipe.writeReview))}</Txt>
               </Pressable>
             ) : null}
           </View>
@@ -483,7 +497,7 @@ export default function RecipeDetail() {
         cta={tr((s) => s.recipe.viewCookbooks)} onCta={() => router.push('/(tabs)/cookbooks')} />
 
       {/* Write a review */}
-      <Sheet open={sheet === 'review'} onClose={() => setSheet(null)} t={t} title={tr((s) => s.recipe.writeReview)}>
+      <Sheet open={sheet === 'review'} onClose={() => setSheet(null)} t={t} title={tr((s) => (myReview ? s.recipe.editYourReview : s.recipe.writeReview))}>
         <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 6, marginBottom: 16 }}>
           {[1, 2, 3, 4, 5].map((n) => (
             <Pressable key={n} hitSlop={4} onPress={() => setReviewStars(n)}>
@@ -499,6 +513,11 @@ export default function RecipeDetail() {
         <PrimaryButton t={t} full disabled={!reviewStars || reviewBusy} onPress={submitReview}>
           {reviewBusy ? tr((s) => s.auth.pleaseWait) : tr((s) => s.recipe.postReview)}
         </PrimaryButton>
+        {myReview ? (
+          <Pressable onPress={deleteMyReview} disabled={reviewBusy} hitSlop={6} style={{ alignItems: 'center', marginTop: 14 }}>
+            <Txt style={{ color: t.danger, fontWeight: '700', fontSize: 14 }}>{tr((s) => s.recipe.deleteReview)}</Txt>
+          </Pressable>
+        ) : null}
       </Sheet>
 
       <Paywall open={payOpen} onClose={() => setPayOpen(false)} reachedLimit />

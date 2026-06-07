@@ -112,6 +112,8 @@ export const de: UIStrings = {
     noReviews: 'Noch keine Bewertungen — sei die/der Erste.',
     reviewPlaceholder: 'Teile deine Meinung…',
     postReview: 'Bewertung posten',
+    editYourReview: 'Bewertung bearbeiten',
+    deleteReview: 'Bewertung löschen',
     aiTools: 'KI-Tools',
     scale: 'Anpassen',
     substitute: 'Ersetzen',
@@ -291,6 +293,7 @@ export const de: UIStrings = {
     youPlanned: 'Du hast {title} zum Plan hinzugefügt',
     youSaved: 'Du hast {title} gespeichert',
     youImported: 'Du hast {title} importiert',
+    youReviewed: 'Du hast {title} bewertet',
     timerFinished: 'Timer beendet beim Kochen von {title}',
   },
   settings: {

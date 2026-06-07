@@ -13,7 +13,7 @@ import { Screen, ScreenHeader } from '../components/Screen';
 import { timeAgo } from '../utils/format';
 
 const ICONS: Record<AppReminder['kind'], keyof typeof Icon> = {
-  cooked: 'forkknife', plan: 'calendar', save: 'bookmark', import: 'download', timer: 'timer',
+  cooked: 'forkknife', plan: 'calendar', save: 'bookmark', import: 'download', timer: 'timer', review: 'star',
 };
 
 // Localized text template for each activity kind (cook-timer carries its own text).
@@ -23,6 +23,7 @@ const TEMPLATE: Record<AppReminder['kind'], (s: UIStrings) => string> = {
   save: (s) => s.notifications.youSaved,
   import: (s) => s.notifications.youImported,
   timer: (s) => s.notifications.timerFinished,
+  review: (s) => s.notifications.youReviewed,
 };
 
 export default function Notifications() {

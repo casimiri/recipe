@@ -113,6 +113,8 @@ export const en = {
     noReviews: 'No reviews yet — be the first.',
     reviewPlaceholder: 'Share what you thought…',
     postReview: 'Post review',
+    editYourReview: 'Edit your review',
+    deleteReview: 'Delete review',
     aiTools: 'AI tools',
     scale: 'Scale',
     substitute: 'Substitute',
@@ -292,6 +294,7 @@ export const en = {
     youPlanned: 'You added {title} to your plan',
     youSaved: 'You saved {title}',
     youImported: 'You imported {title}',
+    youReviewed: 'You reviewed {title}',
     timerFinished: 'Step timer finished while cooking {title}',
   },
   settings: {
