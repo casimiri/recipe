@@ -149,6 +149,7 @@ export const en = {
     print: 'Print',
     savePdf: 'Save PDF',
     ingredientsAdded: '{count} ingredients from {title} added.',
+    alreadyOnList: 'Everything from {title} is already on your list.',
     noCookbooks: 'No cookbooks yet — create one below.',
     create: 'Create',
     addedToCookbook: 'Added to cookbook',

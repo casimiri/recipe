@@ -47,7 +47,7 @@ function AiChip({ t, icon, label, onPress, active }: { t: Tokens; icon: React.Re
 export default function RecipeDetail() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse, ratings, setRecipeRating, addReview, deleteReview, rawById, logView } = useApp();
+  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse, ratings, setRecipeRating, addReview, deleteReview, rawById, logView, addGroceryItems } = useApp();
   const { session } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -69,6 +69,7 @@ export default function RecipeDetail() {
   const [subs, setSubs] = useState<string[] | null>(null);
   const [subLoading, setSubLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [addedCount, setAddedCount] = useState(0);
 
   const url = recipeUrl(r.id);
 
@@ -290,7 +291,19 @@ export default function RecipeDetail() {
             </View>
           ))}
 
-          <PrimaryButton t={t} ghost full icon={<Icon.cart size={18} sw={2} color={t.text} />} style={{ marginTop: 16 }} onPress={() => setSheet('added')}>
+          <PrimaryButton t={t} ghost full icon={<Icon.cart size={18} sw={2} color={t.text} />} style={{ marginTop: 16 }}
+            onPress={() => {
+              const n = addGroceryItems(
+                r.ingredients.map((ing) => {
+                  const conv = convertUnit(ing.qty * scale, ing.unit, units);
+                  const q = fmtQty(conv.qty);
+                  return { name: ing.item, qty: q ? `${q}${conv.unit ? ' ' + conv.unit : ''}` : '' };
+                }),
+                r.title,
+              );
+              setAddedCount(n);
+              setSheet('added');
+            }}>
             {tr((s) => s.recipe.addAllToList)}
           </PrimaryButton>
 
@@ -459,7 +472,7 @@ export default function RecipeDetail() {
 
       {/* Confirms */}
       <ConfirmSheet open={sheet === 'added'} onClose={() => setSheet(null)} t={t} icon={<Icon.cart size={26} sw={2} color={t.accent} />}
-        title={tr((s) => s.recipe.addedToList)} body={tr((s) => s.recipe.ingredientsAdded, { count: r.ingredients.length, title: r.title })}
+        title={tr((s) => s.recipe.addedToList)} body={addedCount > 0 ? tr((s) => s.recipe.ingredientsAdded, { count: addedCount, title: r.title }) : tr((s) => s.recipe.alreadyOnList, { title: r.title })}
         cta={tr((s) => s.recipe.viewList)} onCta={() => router.push('/(tabs)/grocery')} />
       <ConfirmSheet open={sheet === 'planned'} onClose={() => setSheet(null)} t={t} icon={<Icon.calendar size={26} sw={2} color={t.accent} />}
         title={tr((s) => s.recipe.addedToPlan)} body={tr((s) => s.recipe.addedToPlanBody, { title: r.title })} cta={tr((s) => s.recipe.openPlan)} onCta={() => router.push('/(tabs)/planner')} />

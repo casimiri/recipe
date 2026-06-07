@@ -44,6 +44,8 @@ interface AppCtx {
   toggleGrocery: (id: string) => void;
   groceryExtra: GroceryItem[];
   addGroceryItem: (name: string, qty?: string) => void;
+  /** Add a recipe's ingredients to the list as your own items (deduped by name); returns how many were added. */
+  addGroceryItems: (items: { name: string; qty: string }[], from: string) => number;
   removeGroceryItem: (id: string) => void;
   /** Generated grocery item ids hidden as "always have" staples. */
   pantryStaples: string[];
@@ -351,6 +353,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         ...s,
         groceryExtra: [...s.groceryExtra, { id: 'x' + Date.now(), name: name.trim(), qty: qty?.trim() || '1', from: 'Added by you' }],
       })),
+    addGroceryItems: (items, from) => {
+      const have = new Set(state.groceryExtra.map((g) => g.name.toLowerCase()));
+      const base = Date.now();
+      const fresh = items
+        .filter((it) => it.name.trim() && !have.has(it.name.trim().toLowerCase()))
+        .map((it, i) => ({ id: `x${base}-${i}`, name: it.name.trim(), qty: (it.qty || '1').trim(), from }));
+      if (fresh.length) setState((s) => ({ ...s, groceryExtra: [...s.groceryExtra, ...fresh] }));
+      return fresh.length;
+    },
     removeGroceryItem: (id) =>
       setState((s) => ({
         ...s,

@@ -148,6 +148,7 @@ export const fr: UIStrings = {
     print: 'Imprimer',
     savePdf: 'Enregistrer en PDF',
     ingredientsAdded: '{count} ingrédients de {title} ajoutés.',
+    alreadyOnList: 'Tout de {title} est déjà sur votre liste.',
     noCookbooks: 'Aucun livre pour le moment — créez-en un ci-dessous.',
     create: 'Créer',
     addedToCookbook: 'Ajouté au livre',
