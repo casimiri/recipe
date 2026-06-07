@@ -1,8 +1,19 @@
 // Shared helpers for sharing/exporting recipes as HTML (for print + PDF export).
+import * as Linking from 'expo-linking';
 import { fmtQty, convertUnit, type UnitSystem } from '../utils/format';
 import type { Recipe } from '../data/types';
 
+/** Pretty canonical URL — used as a label and in printed exports. */
 export const recipeUrl = (id: string) => `https://recipe-snap.app/r/${id}`;
+
+/**
+ * Deep link that actually opens the recipe in the app. expo-router maps the
+ * path to the `recipe/[id]` route, so this resolves to the recipe screen on a
+ * device with the app installed (`recipesnap://recipe/<id>` in a standalone
+ * build; an `exp://…/--/recipe/<id>` URL in Expo Go). A universal `https://`
+ * link would additionally need the domain's app-site-association set up.
+ */
+export const recipeLink = (id: string) => Linking.createURL(`/recipe/${id}`);
 
 const ingredientLine = (i: Recipe['ingredients'][number], units: UnitSystem) => {
   const c = convertUnit(i.qty, i.unit, units);

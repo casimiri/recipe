@@ -18,7 +18,7 @@ import {
 } from '../../components/atoms';
 import { listReviews, type Review } from '../../lib/repo';
 import { fmtQty, convertUnit } from '../../utils/format';
-import { recipeHtml, recipeUrl } from '../../lib/share';
+import { recipeHtml, recipeLink } from '../../lib/share';
 import { aiTool } from '../../lib/ai';
 import { IngredientIcon, useIngredientImage } from '../../components/IngredientImage';
 import { DAYS } from '../../data/seed';
@@ -73,20 +73,20 @@ export default function RecipeDetail() {
   const [copied, setCopied] = useState(false);
   const [addedCount, setAddedCount] = useState(0);
 
-  const url = recipeUrl(r.id);
+  const link = recipeLink(r.id);   // openable deep link we actually share/copy
 
   // Dispatch for the share-sheet actions. Cancellation/unsupported = silent no-op.
   const onShare = async (label: string) => {
     try {
       if (label === 'Copy link') {
-        await Clipboard.setStringAsync(url);
+        await Clipboard.setStringAsync(link);
         setCopied(true);
         setTimeout(() => setCopied(false), 1800);
         return;
       }
       setSheet(null);
       if (label === 'Stories') {
-        await Share.share({ message: `${r.title} — ${url}`, url });
+        await Share.share({ message: `${r.title} — ${link}`, url: link });
       } else if (label === 'Print') {
         await Print.printAsync({ html: recipeHtml(r, units) });
       } else if (label === 'Save PDF') {

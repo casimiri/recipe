@@ -47,6 +47,8 @@ interface AppCtx {
   /** Add a recipe's ingredients to the list as your own items (deduped by name); returns how many were added. */
   addGroceryItems: (items: { name: string; qty: string }[], from: string) => number;
   removeGroceryItem: (id: string) => void;
+  /** Empty the list: remove the user's own items and check off all generated items. */
+  clearGroceryList: () => void;
   /** Generated grocery item ids hidden as "always have" staples. */
   pantryStaples: string[];
   /** Toggle whether a generated grocery item is a pantry staple (hidden from lists). */
@@ -367,6 +369,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         ...s,
         groceryExtra: s.groceryExtra.filter((g) => g.id !== id),
         groceryChecked: s.groceryChecked.filter((x) => x !== id),
+      })),
+    // Empty the list: drop the user's own items, and check off every generated
+    // item (plan-derived items regenerate, so they're marked done rather than
+    // deleted). Leaves pantry staples untouched.
+    clearGroceryList: () =>
+      setState((s) => ({
+        ...s,
+        groceryExtra: [],
+        groceryChecked: groceryAisles.flatMap((g) => g.items.map((i) => i.id)),
       })),
     pantryStaples: state.pantryStaples,
     togglePantryStaple: (id) =>

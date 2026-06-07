@@ -31,7 +31,9 @@ export default function Search() {
 
   const results = recipes.filter((r) => {
     const ql = q.toLowerCase();
-    const matchQ = !q || r.title.toLowerCase().includes(ql) || r.cuisine.toLowerCase().includes(ql) || r.tags.some((tg) => tg.toLowerCase().includes(ql));
+    const matchQ = !q || r.title.toLowerCase().includes(ql) || r.cuisine.toLowerCase().includes(ql)
+      || r.tags.some((tg) => tg.toLowerCase().includes(ql))
+      || r.ingredients.some((i) => i.item.toLowerCase().includes(ql));
     const matchF = active.every((f) => r.tags.includes(f) || r.difficulty === f || r.meal === f);
     const matchDiet = diet.every((d) => r.tags.includes(d));
     return matchQ && matchF && matchDiet;

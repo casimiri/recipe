@@ -16,7 +16,7 @@ import type { GroceryAisle, GroceryItem } from '../../data/types';
 export default function Grocery() {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { groceryAisles, groceryChecked, toggleGrocery, setGroceryChecked, groceryExtra, addGroceryItem, removeGroceryItem, pantryStaples, togglePantryStaple } = useApp();
+  const { groceryAisles, groceryChecked, toggleGrocery, setGroceryChecked, groceryExtra, addGroceryItem, removeGroceryItem, clearGroceryList, pantryStaples, togglePantryStaple } = useApp();
   const extraIds = new Set(groceryExtra.map((g) => g.id));
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -25,6 +25,7 @@ export default function Grocery() {
   const [addingQty, setAddingQty] = useState('');
   const [payOpen, setPayOpen] = useState(false);
   const ingImg = useIngredientImage(() => setPayOpen(true));
+  const swipeRefs = React.useRef<Record<string, Swipeable | null>>({});
   const submitAdd = () => { if (adding.trim()) { addGroceryItem(adding, addingQty); setAdding(''); setAddingQty(''); } };
 
   const allItems = [...groceryAisles.flatMap((g) => g.items), ...groceryExtra];
@@ -60,6 +61,21 @@ export default function Grocery() {
     const s = id.replace(/^g:/, '').replace(/-/g, ' ');
     return s.charAt(0).toUpperCase() + s.slice(1);
   };
+  // Confirm before deleting one of the user's own items (both the × tap and the
+  // swipe-left action go through this). `after` snaps an open swipe row closed.
+  const confirmRemove = (item: GroceryItem, after?: () => void) =>
+    Alert.alert(tr((s) => s.grocery.removeTitle), tr((s) => s.grocery.removeBody, { name: item.name }), [
+      { text: tr((s) => s.common.cancel), style: 'cancel', onPress: after },
+      { text: tr((s) => s.grocery.remove), style: 'destructive', onPress: () => { removeGroceryItem(item.id); after?.(); } },
+    ]);
+  // Bulk actions on the whole list.
+  const allChecked = total > 0 && doneCount === total;
+  const toggleSelectAll = () => setGroceryChecked(allChecked ? [] : allItems.map((i) => i.id));
+  const confirmClearList = () =>
+    Alert.alert(tr((s) => s.grocery.clearList), tr((s) => s.grocery.clearListBody), [
+      { text: tr((s) => s.common.cancel), style: 'cancel' },
+      { text: tr((s) => s.grocery.clearList), style: 'destructive', onPress: clearGroceryList },
+    ]);
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
@@ -100,10 +116,14 @@ export default function Grocery() {
           {g.items.map((item) => {
             const on = groceryChecked.includes(item.id);
             const extra = extraIds.has(item.id);
-            // Swipe left to commit: own items are removed, planned items are hidden as staples.
-            const onSwipe = () => (extra ? removeGroceryItem(item.id) : togglePantryStaple(item.id));
+            // Swipe left to commit: own items are removed (with confirmation),
+            // planned items are hidden as staples.
+            const onSwipe = () => (extra
+              ? confirmRemove(item, () => swipeRefs.current[item.id]?.close())
+              : togglePantryStaple(item.id));
             return (
               <Swipeable key={item.id} overshootRight={false}
+                ref={(ref) => { swipeRefs.current[item.id] = ref; }}
                 onSwipeableOpen={(dir) => { if (dir === 'right') onSwipe(); }}
                 renderRightActions={() => (
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 22, backgroundColor: extra ? t.danger : t.accent }}>
@@ -125,7 +145,7 @@ export default function Grocery() {
                     <Icon.eye size={17} sw={2} color={t.faint} />
                   </Pressable>
                   {extra ? (
-                    <Pressable onPress={() => removeGroceryItem(item.id)} hitSlop={10} style={{ padding: 4 }}>
+                    <Pressable onPress={() => confirmRemove(item)} hitSlop={10} style={{ padding: 4 }}>
                       <Icon.x size={18} sw={2.2} color={t.muted} />
                     </Pressable>
                   ) : (
@@ -163,7 +183,14 @@ export default function Grocery() {
         </View>
       ) : null}
 
-      <PrimaryButton t={t} ghost full onPress={() => setGroceryChecked([])}>{tr((s) => s.grocery.clearChecked)}</PrimaryButton>
+      {total > 0 ? (
+        <View style={{ flexDirection: 'row', gap: 12 }}>
+          <PrimaryButton t={t} ghost full onPress={toggleSelectAll}>
+            {allChecked ? tr((s) => s.grocery.deselectAll) : tr((s) => s.grocery.selectAll)}
+          </PrimaryButton>
+          <PrimaryButton t={t} ghost full onPress={confirmClearList}>{tr((s) => s.grocery.clearList)}</PrimaryButton>
+        </View>
+      ) : null}
 
       {ingImg.element}
       <Paywall open={payOpen} onClose={() => setPayOpen(false)} reachedLimit />
