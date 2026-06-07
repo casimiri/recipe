@@ -155,10 +155,7 @@ export default function Grocery() {
         </View>
       ) : null}
 
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <PrimaryButton t={t} ghost full onPress={() => setGroceryChecked([])}>{tr((s) => s.grocery.clearChecked)}</PrimaryButton>
-        <PrimaryButton t={t} full icon={<Icon.cart size={18} sw={2} color={t.accentText} />} onPress={() => router.push('/checkout')}>{tr((s) => s.grocery.orderDelivery)}</PrimaryButton>
-      </View>
+      <PrimaryButton t={t} ghost full onPress={() => setGroceryChecked([])}>{tr((s) => s.grocery.clearChecked)}</PrimaryButton>
     </ScrollView>
   );
 }

@@ -98,7 +98,10 @@ export function PrimaryButton({
   return (
     <Pressable onPress={disabled ? undefined : onPress} style={({ pressed }) => [{
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9,
+      // `full` spans the container; flexShrink lets two full buttons share a row
+      // (otherwise the second 100%-wide button overflows off-screen on mobile).
       width: full ? '100%' : undefined,
+      flexShrink: full ? 1 : undefined,
       borderWidth: ghost ? 1.5 : 0, borderColor: t.borderStrong,
       backgroundColor: ghost ? 'transparent' : t.accent,
       paddingVertical: 15, paddingHorizontal: 22, borderRadius: 999,
