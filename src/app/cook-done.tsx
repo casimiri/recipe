@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable, Share } from 'react-native';
 import { useRouter, useLocalSearchParams, type Href } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n';
 import { useApp } from '../store/AppState';
+import { recipeLink } from '../lib/share';
 import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
 import { PrimaryButton } from '../components/atoms';
@@ -21,6 +22,20 @@ export default function CookDone() {
   const finish = (to: Href) => {
     logCook(r.id, rating);
     router.replace(to);
+  };
+
+  // Record the cook, open the native share sheet with the recipe link (and the
+  // rating, if given), then head home.
+  const shareCook = async () => {
+    logCook(r.id, rating);
+    const link = recipeLink(r.id);
+    const stars = rating > 0 ? ` ${'★'.repeat(rating)}` : '';
+    try {
+      await Share.share({ message: `${tr((s) => s.cookDone.shareMessage, { title: r.title })}${stars} — ${link}`, url: link });
+    } catch {
+      // user dismissed the sheet or sharing is unsupported
+    }
+    router.replace('/(tabs)');
   };
 
   return (
@@ -41,7 +56,7 @@ export default function CookDone() {
       </View>
       <View style={{ width: '100%', gap: 12 }}>
         <PrimaryButton t={t} full onPress={() => finish('/(tabs)')}>{tr((s) => s.cookDone.backHome)}</PrimaryButton>
-        <PrimaryButton t={t} ghost full icon={<Icon.share size={17} sw={2} color={t.text} />} onPress={() => finish(`/recipe/${r.id}`)}>{tr((s) => s.cookDone.shareCook)}</PrimaryButton>
+        <PrimaryButton t={t} ghost full icon={<Icon.share size={17} sw={2} color={t.text} />} onPress={shareCook}>{tr((s) => s.cookDone.shareCook)}</PrimaryButton>
       </View>
     </View>
   );

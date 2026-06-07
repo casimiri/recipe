@@ -6,6 +6,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../theme/ThemeProvider';
 import { useI18n, type Tr } from '../i18n';
 import { useApp } from '../store/AppState';
+import { useAuth } from '../store/auth';
+import { uploadRecipeImage } from '../lib/repo';
 import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
 import { Dish, IconBtn, PrimaryButton, SectionHead, Tag } from '../components/atoms';
@@ -45,9 +47,11 @@ export default function ImportScreen() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
   const { saveRecipe, cookbooks, addToCookbook, canUseAi, recordAiUse, pro, aiRemaining } = useApp();
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [payOpen, setPayOpen] = useState(false);
+  const [imgBusy, setImgBusy] = useState(false);
 
   // Brand source names (Instagram/TikTok/YouTube) stay as-is; generic ones localize.
   const srcLabel = (s: typeof SOURCES[number]) =>
@@ -95,6 +99,24 @@ export default function ImportScreen() {
     setRecipe({ ...r, source: { kind: s.kind, handle: url || link || s.sample, name: srcLabel(s) } });
   };
 
+  // Replace the preview photo from the library, uploaded to recipe-images.
+  // Guests (or a failed upload) keep the device-local URI as a fallback.
+  const pickPhoto = async () => {
+    setImgBusy(true);
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.6 });
+      const asset = res.canceled ? null : res.assets[0];
+      if (asset) {
+        const uploaded = asset.base64 && user?.id ? await uploadRecipeImage(user.id, asset.base64) : null;
+        setRecipe((cur) => (cur ? { ...cur, img: uploaded ?? asset.uri } : cur));
+      }
+    } catch {
+      // permission denied or picker error → keep the current image
+    } finally {
+      setImgBusy(false);
+    }
+  };
+
   // Move to preview once both the animation and the fetch have completed.
   useEffect(() => {
     if (stage === 'extract' && animDone && recipe) setStage('preview');
@@ -115,12 +137,14 @@ export default function ImportScreen() {
           <Txt style={{ color: t.accent, fontSize: 13, fontWeight: '700', flex: 1 }}>{tr((s) => src.kind === 'manual' ? s.import.blankBanner : s.import.extractedBanner)}</Txt>
         </View>
 
-        <Dish src={r.img} alt={r.title} radius={t.radius} style={{ width: '100%', height: 170, marginBottom: 16 }}>
-          <View style={{ position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.92)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999 }}>
-            <Icon.camera size={15} sw={2} color="#222" />
-            <Txt style={{ color: '#222', fontSize: 12.5, fontWeight: '700' }}>{tr((s) => s.import.change)}</Txt>
-          </View>
-        </Dish>
+        <Pressable onPress={pickPhoto} disabled={imgBusy}>
+          <Dish src={r.img} alt={r.title} radius={t.radius} style={{ width: '100%', height: 170, marginBottom: 16 }}>
+            <View style={{ position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.92)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999 }}>
+              <Icon.camera size={15} sw={2} color="#222" />
+              <Txt style={{ color: '#222', fontSize: 12.5, fontWeight: '700' }}>{imgBusy ? tr((s) => s.auth.pleaseWait) : tr((s) => s.import.change)}</Txt>
+            </View>
+          </Dish>
+        </Pressable>
 
         <EditField t={t} value={r.title} onChange={(v) => setRecipe({ ...r, title: v })} big />
         <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, marginBottom: 20 }}>

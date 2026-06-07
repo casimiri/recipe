@@ -206,6 +206,7 @@ export const es: UIStrings = {
     body: 'Has cocinado {title}. ¿Qué tal salió?',
     backHome: 'Volver al inicio',
     shareCook: 'Comparte tu plato',
+    shareMessage: '¡Acabo de cocinar {title} en Recipe-Snap!',
   },
   planner: {
     title: 'Menú semanal',

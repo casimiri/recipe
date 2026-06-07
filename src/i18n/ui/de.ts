@@ -206,6 +206,7 @@ export const de: UIStrings = {
     body: 'Du hast {title} gekocht. Wie war es?',
     backHome: 'Zurück zum Start',
     shareCook: 'Gericht teilen',
+    shareMessage: 'Ich habe gerade {title} mit Recipe-Snap gekocht!',
   },
   planner: {
     title: 'Essensplan',

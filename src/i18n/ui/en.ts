@@ -207,6 +207,7 @@ export const en = {
     body: 'You cooked {title}. How did it turn out?',
     backHome: 'Back to home',
     shareCook: 'Share your cook',
+    shareMessage: 'I just cooked {title} on Recipe-Snap!',
   },
   planner: {
     title: 'Meal plan',
