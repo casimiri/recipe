@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   listRecipes, addRecipe, updateRecipe as updateRecipeRepo, deleteRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
-  addReview as addReviewRepo, deleteReview as deleteReviewRepo,
+  addReview as addReviewRepo, deleteReview as deleteReviewRepo, setReviewRating as setReviewRatingRepo,
   DEFAULT_STATE, UserState, ProfileRow, CookLog, UserCookbook, AppReminder,
   getBillingConfig, getSubscription, startSubscription, aiPeriod, oneMonthFromNow, type BillingConfig,
 } from '../lib/repo';
@@ -51,7 +51,8 @@ interface AppCtx {
   logCook: (id: string, rating: number) => void;
   rateCook: (id: string, rating: number) => void;
   ratings: Record<string, number>;
-  setRecipeRating: (id: string, rating: number) => void;
+  /** Set (or clear, with 0) your star rating — writes a rating-only review when signed in. */
+  setRecipeRating: (id: string, rating: number) => Promise<void>;
   /** Post the signed-in user's review (rating + text); false if not signed in. */
   addReview: (recipeId: string, rating: number, body: string) => Promise<boolean>;
   /** Remove the signed-in user's review for a recipe. */
@@ -197,16 +198,18 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     [state.plan, recipes, state.units],
   );
 
-  // Blend the user's own 1–5 rating into each recipe's displayed score, counted
-  // as one extra review so it nudges (rather than replaces) the catalog average.
+  // For signed-in users the server aggregates real reviews into recipe.rating
+  // (a DB trigger), so the catalog value is already authoritative — no client
+  // blend (that would double-count the user's own review). Guests have no
+  // backend, so their local star ratings are blended in client-side instead.
   const ratedRecipes = useMemo(
-    () => localizedRecipes.map((r) => {
+    () => (user?.id ? localizedRecipes : localizedRecipes.map((r) => {
       const mine = state.ratings[r.id];
       if (!mine) return r;
       const reviews = r.reviews + 1;
       return { ...r, rating: Math.round(((r.rating * r.reviews + mine) / reviews) * 10) / 10, reviews };
-    }),
-    [localizedRecipes, state.ratings],
+    })),
+    [localizedRecipes, state.ratings, user?.id],
   );
 
   // Pro lapses one month after purchase: honour the validity window client-side
@@ -359,8 +362,20 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       logActivity('cooked', id);
     },
     ratings: state.ratings,
-    setRecipeRating: (id, rating) =>
-      setState((s) => ({ ...s, ratings: { ...s.ratings, [id]: rating } })),
+    setRecipeRating: async (id, rating) => {
+      // Update the local mirror (highlights your stars; powers the guest blend).
+      setState((s) => {
+        const ratings = { ...s.ratings };
+        if (rating) ratings[id] = rating; else delete ratings[id];
+        return { ...s, ratings };
+      });
+      // Signed in: a star tap is a quick (text-less) review, so it counts toward
+      // the community aggregate; rating 0 retracts it.
+      if (user?.id) {
+        if (rating) await setReviewRatingRepo(id, user.id, rating, { name: profile.name, avatar: profile.avatar || null });
+        else await deleteReviewRepo(id, user.id);
+      }
+    },
     addReview: async (recipeId, rating, body) => {
       if (!user?.id) return false;
       // Keep the user's private star rating in sync with their review rating.
@@ -371,7 +386,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     },
     deleteReview: async (recipeId) => {
       if (!user?.id) return false;
-      return deleteReviewRepo(recipeId, user.id);
+      const ok = await deleteReviewRepo(recipeId, user.id);
+      // Your rating and your review are one and the same — clear the local mirror too.
+      if (ok) setState((s) => { const ratings = { ...s.ratings }; delete ratings[recipeId]; return { ...s, ratings }; });
+      return ok;
     },
     // Re-rate an existing cook in place (keeps its date + position).
     rateCook: (id, rating) =>

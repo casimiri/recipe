@@ -100,14 +100,16 @@ export default function RecipeDetail() {
   const scale = servings / r.servings;
   const saved = isSaved(r.id);
 
-  // Blend real community reviews with the catalog baseline (used as a prior, so
-  // a couple of reviews nudge a well-established score rather than replace it).
-  // Falls back to r.rating (which already includes your own star rating) when
-  // there are no community reviews yet.
+  // Blend the loaded community reviews with the seed *baseline* (base_*, the
+  // pre-review prior) — the same formula the server trigger uses, so the badge
+  // matches the catalog and updates instantly when reviews change here. Falls
+  // back to the catalog rating (server-aggregated, or guest-blended) otherwise.
   const base = rawById(r.id) ?? r;
+  const baseRating = base.baseRating ?? base.rating;
+  const baseReviews = base.baseReviews ?? base.reviews;
   const reviewCount = reviews?.length ?? 0;
   const shownRating = reviewCount
-    ? Math.round(((base.rating * base.reviews + reviews!.reduce((s, rv) => s + rv.rating, 0)) / (base.reviews + reviewCount)) * 10) / 10
+    ? Math.round(((baseRating * baseReviews + reviews!.reduce((s, rv) => s + rv.rating, 0)) / (baseReviews + reviewCount)) * 10) / 10
     : r.rating;
   const groups = [...new Set(r.ingredients.map((i) => i.g))];
   const macros = MACROS(r.nutrition);
@@ -233,7 +235,10 @@ export default function RecipeDetail() {
             <Txt style={{ fontSize: 14.5, fontWeight: '700', color: t.text }}>{tr((s) => s.recipe.yourRating)}</Txt>
             <View style={{ flexDirection: 'row', gap: 5 }}>
               {[1, 2, 3, 4, 5].map((n) => (
-                <Pressable key={n} hitSlop={4} onPress={() => setRecipeRating(r.id, n === ratings[r.id] ? 0 : n)}>
+                <Pressable key={n} hitSlop={4} onPress={async () => {
+                  await setRecipeRating(r.id, n === ratings[r.id] ? 0 : n);
+                  setReviews(await listReviews(r.id)); // reflect the quick rating in the community list + badge
+                }}>
                   <Icon.star size={24} color={n <= (ratings[r.id] ?? 0) ? t.star : t.border} />
                 </Pressable>
               ))}

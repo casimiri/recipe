@@ -11,7 +11,7 @@ planning, shopping for, and cooking recipes.
 - **Onboarding** — welcome + 3 value slides + taste preferences
 - **Home** — greeting, search, category pills, recipe grid **personalized by your onboarding tastes** (matching recipes float to the top; shows as "For you")
 - **Search** — live filtering, trending searches, **recent searches** (per-user, synced), browse-by-category, filter sheet
-- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **rate it yourself** (your star rating blends into the shown score), **community reviews** (read everyone's, write/edit/delete your own rating + comment; real reviews blend into the recipe's shown score), AI tools (**Scale / Substitute / Make easier**), **add to cookbook**, **edit** your own imported recipes, and **share & export** (copy link, native share sheet, print, save as **PDF**)
+- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **community reviews** (read everyone's, write/edit/delete your own rating + comment; a star tap is a quick rating, and real reviews blend into the recipe's shown score **everywhere** via a DB trigger), AI tools (**Scale / Substitute / Make easier**), **add to cookbook**, **edit** your own imported recipes, and **share & export** (copy link, native share sheet, print, save as **PDF**)
 - **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to your library, optionally filing it into one of your cookbooks
 - **Cook mode** — full-screen step-by-step with step **timers** (fire a local **notification** when they finish, so they alert you even if the app is backgrounded) and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
 - **Meal planner** — weekly calendar with breakfast / lunch / dinner slots, plus an optional **meal reminders** toggle that schedules weekly local notifications ("Time to cook X") for planned meals
@@ -58,7 +58,7 @@ src/
   i18n/                I18nProvider + tr() selector, ui/{en,fr,es,de} dictionaries, enums + recipe content localization
   utils/               formatting helpers (incl. metric↔imperial unit conversion) + grocery-list builder
 supabase/
-  migrations/                0001 schema · 0002 avatars bucket · 0003 billing · 0004 reviews
+  migrations/                0001 schema · 0002 avatars bucket · 0003 billing · 0004 reviews · 0005 review-rating trigger
   seed.sql                   shared recipe catalog (generated)
   functions/import-recipe/   OpenAI recipe extraction (AI-quota gated)
   functions/ai-tools/        OpenAI substitutions + step simplification (AI-quota gated)
@@ -252,9 +252,14 @@ on conflict (id) do nothing;
 
 - **`recipes`** — shared catalog (world-readable) plus each user's own imports
   (`owner = auth.uid()`, protected by RLS); owners can **edit/delete** their own.
+  `rating`/`reviews` are the **display aggregate** (kept current by the reviews
+  trigger); `base_rating`/`base_reviews` hold the seed baseline used as a prior.
 - **`recipe_reviews`** — community reviews (one per recipe per user: `rating`
   1–5 + `body`, with `author_name`/`author_avatar` denormalized for listing);
-  world-readable, writes RLS-scoped to the author.
+  world-readable, writes RLS-scoped to the author. A trigger
+  (`recompute_recipe_rating`) folds them into `recipes.rating`/`reviews` —
+  blended with the baseline so a few reviews nudge an established score rather
+  than replace it.
 - **`profiles`** — auto-created on sign-up via a trigger.
 - **`user_state`** — per-user JSON blob (saved recipes, meal plan, grocery
   checks/extras, tastes, cooked history with ratings, your own per-recipe

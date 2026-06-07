@@ -50,6 +50,9 @@ export interface Recipe {
   difficulty: 'Easy' | 'Medium' | 'Hard';
   rating: number;
   reviews: number;
+  /** Seed baseline (pre-review) rating/count, used as a prior when blending real reviews. */
+  baseRating?: number;
+  baseReviews?: number;
   img: string;
   source: RecipeSource;
   saves: number;

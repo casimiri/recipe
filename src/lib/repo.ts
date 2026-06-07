@@ -126,6 +126,8 @@ function rowToRecipe(row: any): Recipe {
     difficulty: row.difficulty,
     rating: row.rating,
     reviews: row.reviews,
+    baseRating: row.base_rating ?? row.rating,
+    baseReviews: row.base_reviews ?? row.reviews,
     img: row.img,
     source: row.source,
     saves: row.saves,
@@ -151,6 +153,8 @@ function recipeToRow(r: Recipe, userId?: string) {
     difficulty: r.difficulty,
     rating: r.rating,
     reviews: r.reviews,
+    base_rating: r.baseRating ?? r.rating,
+    base_reviews: r.baseReviews ?? r.reviews,
     img: r.img,
     source: r.source,
     saves: r.saves,
@@ -247,6 +251,25 @@ export async function addReview(
   if (!isSupabaseConfigured || !supabase) return false;
   const { error } = await supabase.from('recipe_reviews').upsert(
     { recipe_id: recipeId, user_id: userId, rating, body, author_name: author.name, author_avatar: author.avatar },
+    { onConflict: 'recipe_id,user_id' },
+  );
+  return !error;
+}
+
+/**
+ * Quick rating (a review without text) — upserts only the rating so an existing
+ * review's body is preserved. Used by the recipe screen's "Your rating" stars.
+ */
+export async function setReviewRating(
+  recipeId: string,
+  userId: string,
+  rating: number,
+  author: { name: string; avatar: string | null },
+): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase) return false;
+  // Omitting `body` means it isn't in the ON CONFLICT update set, so existing text survives.
+  const { error } = await supabase.from('recipe_reviews').upsert(
+    { recipe_id: recipeId, user_id: userId, rating, author_name: author.name, author_avatar: author.avatar },
     { onConflict: 'recipe_id,user_id' },
   );
   return !error;
