@@ -12,12 +12,12 @@ planning, shopping for, and cooking recipes.
 - **Home** — greeting, search, category pills, recipe grid **personalized by your onboarding tastes** (matching recipes float to the top; shows as "For you")
 - **Search** — live filtering, trending searches, **recent searches** (per-user, synced), browse-by-category, filter sheet
 - **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **rate it yourself** (your star rating blends into the shown score), AI tools (**Scale / Substitute / Make easier**), **add to cookbook**, and **share & export** (copy link, native share sheet, print, save as **PDF**)
-- **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to a cookbook
+- **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to your library, optionally filing it into one of your cookbooks
 - **Cook mode** — full-screen step-by-step with step **timers** (fire a local **notification** when they finish, so they alert you even if the app is backgrounded) and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
 - **Meal planner** — weekly calendar with breakfast / lunch / dinner slots, plus an optional **meal reminders** toggle that schedules weekly local notifications ("Time to cook X") for planned meals
 - **Smart grocery list** — **auto-generated from your meal plan**: the planned recipes' ingredients are aggregated (duplicates merged across recipes, quantities summed and shown in your unit system) and grouped by aisle or recipe, with progress, **add/remove your own items**, and an order-delivery flow
 - **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes
-- **Cookbooks** — browse, **create and delete your own**, and add/remove recipes; plus **Profile / social** (created / saved / cooked tabs, with **star ratings + re-rate** on cooked recipes), **Notifications** (a real **activity feed** — your cooks, saves, meal-plan adds and imports, plus cook-timer reminders — with an unread badge), **Settings**
+- **Cookbooks** — browse, **create and delete your own**, and add/remove recipes (new accounts start with a few **starter cookbooks** built from the catalog); plus **Profile** (created / saved / cooked tabs, with **star ratings + re-rate** on cooked recipes, and live **recipes / cookbooks / cooked** counts), **Notifications** (a real **activity feed** — your cooks, saves, meal-plan adds and imports, plus cook-timer reminders — with an unread badge), **Settings**
 - **Languages** — **English, French, Spanish, German**; defaults to the device language and switchable in Settings. Translates the whole UI, the seed recipe catalog (titles/descriptions/ingredients/steps), and **AI output** — imported recipes and the Substitute / Make-easier tools come back in the active language (enum-ish fields stay English so filtering keeps working)
 - **Units** — switch ingredient quantities between **metric and imperial** in Settings; conversion flows through recipe detail, cook mode, the grocery list, and exports
 - **Export** — save your created + saved recipes as a single PDF from Settings
@@ -45,7 +45,7 @@ src/
   app/                 expo-router routes
     _layout.tsx        providers (theme, auth, app state) + root stack
     index.tsx          gate → onboarding / auth / tabs
-    onboarding.tsx  auth.tsx
+    onboarding.tsx  auth.tsx  reset-password.tsx
     (tabs)/            home, cookbooks, planner, grocery, profile + pill tab bar
     recipe/[id].tsx    cook/[id].tsx  cookbook/[id].tsx
     import.tsx  search.tsx  notifications.tsx  settings.tsx  checkout.tsx  cook-done.tsx
@@ -254,7 +254,8 @@ on conflict (id) do nothing;
 - **`user_state`** — per-user JSON blob (saved recipes, meal plan, grocery
   checks/extras, tastes, cooked history with ratings, your own per-recipe
   ratings, dietary preferences,
-  unit system, user-created cookbooks, recent searches, app-generated reminders
+  unit system, cookbooks (seeded with starter collections for new accounts),
+  recent searches, app-generated reminders
   + a last-seen timestamp for the notifications badge, and the cached Pro flag +
   monthly AI-usage counter), RLS-scoped to the owner.
 - **`app_config`** — single admin-tunable row (monthly `price_cents`, `currency`,
@@ -278,10 +279,18 @@ on conflict (id) do nothing;
   recipes, plan, tastes) is pushed up the first time you log in to an empty
   account.
 - **Tokens** auto-refresh only while the app is foregrounded (RN best practice).
-- **Account management:** the sign-in screen has **Forgot password?**
-  (`supabase.auth.resetPasswordForEmail`), and Settings → **Delete account**
-  calls the `delete-account` function to remove the user's rows, avatars and
-  auth record (irreversible, behind a confirm).
+- **Password reset:** the sign-in screen's **Forgot password?**
+  (`supabase.auth.resetPasswordForEmail` with a `redirectTo` deep link) emails a
+  recovery link that **opens the app** on a **set-a-new-password** screen
+  (`app/reset-password.tsx` → `supabase.auth.updateUser`), which establishes the
+  recovery session from the link, validates the new password, and signs you in.
+  The deep-link scheme (`recipesnap://reset-password`, plus an `exp://` pattern
+  for Expo Go) must be in the project's auth **redirect allow-list**. *Note:*
+  custom schemes only resolve in a **dev/standalone build**, so completing the
+  link in **Expo Go** is unreliable (the in-app screen itself works).
+- **Account management:** Settings → **Delete account** calls the
+  `delete-account` function to remove the user's rows, avatars and auth record
+  (irreversible, behind a confirm).
 - **Avatars sync:** a profile photo picked from the library is uploaded to the
   public `avatars` Storage bucket on save, and its public URL is stored on
   `profiles.avatar` — so it renders across devices. If the upload fails (or in

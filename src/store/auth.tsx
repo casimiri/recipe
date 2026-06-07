@@ -2,6 +2,7 @@
 // email/password auth; otherwise the app runs in a local "guest" mode.
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { AppState } from 'react-native';
+import * as Linking from 'expo-linking';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 
@@ -14,6 +15,8 @@ interface AuthCtx {
   signUp: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error?: string }>;
+  /** Set a new password (used after following a recovery link). */
+  updatePassword: (password: string) => Promise<{ error?: string }>;
   deleteAccount: () => Promise<{ error?: string }>;
 }
 
@@ -71,7 +74,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     resetPassword: async (email) => {
       if (!supabase) return {};
-      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+      // The recovery email links back into the app via a deep link, so the
+      // user lands on the in-app "set a new password" screen.
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: Linking.createURL('reset-password'),
+      });
+      return { error: error?.message };
+    },
+    updatePassword: async (password) => {
+      if (!supabase) return {};
+      const { error } = await supabase.auth.updateUser({ password });
       return { error: error?.message };
     },
     // Calls the delete-account function (service role) to remove the user's

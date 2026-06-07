@@ -61,7 +61,7 @@ export default function Profile() {
       <Txt style={{ fontSize: 14, color: t.text, lineHeight: 21, marginBottom: 18 }}>{p.bio}</Txt>
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 4, borderTopWidth: 1, borderTopColor: t.border, borderBottomWidth: 1, borderBottomColor: t.border, marginBottom: 18 }}>
-        {([['recipes', p.stats.recipes], ['cookbooks', p.stats.cookbooks], ['followers', p.stats.followers], ['following', p.stats.following]] as const).map(([k, v]) => (
+        {([['recipes', p.stats.recipes], ['cookbooks', p.stats.cookbooks], ['cooked', cooked.length]] as const).map(([k, v]) => (
           <View key={k} style={{ alignItems: 'center', flex: 1 }}>
             <Txt style={{ fontSize: 18, fontWeight: '800', color: t.text }}>{compact(v)}</Txt>
             <Txt style={{ fontSize: 11.5, color: t.muted, textTransform: 'capitalize' }}>{tr((s) => s.profile[k])}</Txt>

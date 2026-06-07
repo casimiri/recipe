@@ -121,8 +121,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
 
   // Merge the DB profile over the seed profile, with the created list and the
   // recipes/cookbooks stat counts derived from real state (created = the user's
-  // imported/own recipes; cookbooks = the user's own cookbooks). Followers/
-  // following stay seeded — there's no social graph yet.
+  // imported/own recipes; cookbooks = the user's own cookbooks). The profile
+  // header also shows a live "cooked" count read straight from state.
   const profile: Profile = useMemo(() => {
     const base: Profile = dbProfile
       ? {

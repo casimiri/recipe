@@ -9,7 +9,6 @@ import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
 import { IconBtn, Sheet, PrimaryButton } from '../../components/atoms';
 import { CookbookCover } from '../../components/CookbookCover';
-import { COOKBOOKS } from '../../data/seed';
 
 export default function Cookbooks() {
   const { t } = useTheme();
@@ -56,15 +55,6 @@ export default function Cookbooks() {
             <View style={{ paddingHorizontal: 13, paddingTop: 11, paddingBottom: 13 }}>
               <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text, marginBottom: 2 }}>{c.name}</Txt>
               <Txt style={{ fontSize: 12.5, color: t.muted }}>{tr((s) => s.cookbooks.recipesCount, { count: c.recipeIds.length })}</Txt>
-            </View>
-          </Pressable>
-        ))}
-        {COOKBOOKS.map((c) => (
-          <Pressable key={c.id} onPress={() => router.push(`/cookbook/${c.id}`)} style={{ width: '47%', flexGrow: 1, backgroundColor: t.surface, borderRadius: t.radius, overflow: 'hidden', boxShadow: t.shadow, borderWidth: 1, borderColor: t.border }}>
-            <CookbookCover recipes={c.cover.map(byId)} />
-            <View style={{ paddingHorizontal: 13, paddingTop: 11, paddingBottom: 13 }}>
-              <Txt style={{ fontWeight: '700', fontSize: 14.5, color: t.text, marginBottom: 2 }}>{c.name}</Txt>
-              <Txt style={{ fontSize: 12.5, color: t.muted }}>{tr((s) => s.cookbooks.recipesCount, { count: c.count })}</Txt>
             </View>
           </Pressable>
         ))}

@@ -388,7 +388,7 @@ export const PROFILE: Profile = {
   handle: '@teresacooks',
   avatar: U('1438761681033-6461ffad8d80', 200),
   bio: 'Home cook · brunch enthusiast · collecting recipes faster than I can cook them.',
-  stats: { recipes: 64, cookbooks: 5, followers: 1280, following: 342 },
+  stats: { recipes: 64, cookbooks: 5 },
   created: ['pasta', 'oats'],
 };
 

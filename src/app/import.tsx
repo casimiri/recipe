@@ -14,7 +14,6 @@ import { Paywall } from '../components/Paywall';
 import { fmtQty } from '../utils/format';
 import { importRecipe } from '../lib/ai';
 import { withA } from '../theme/tokens';
-import { COOKBOOKS } from '../data/seed';
 import type { Tokens } from '../theme/tokens';
 import type { Recipe, SourceKind } from '../data/types';
 
@@ -51,7 +50,8 @@ export default function ImportScreen() {
   const [stage, setStage] = useState<Stage>('pick');
   const [src, setSrc] = useState(SOURCES[0]);
   const [link, setLink] = useState('');
-  const [cookbook, setCookbook] = useState(COOKBOOKS[0].id);
+  // '' = save to the library only (no cookbook); user can opt into one below.
+  const [cookbook, setCookbook] = useState('');
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [animDone, setAnimDone] = useState(false);
 
@@ -131,10 +131,14 @@ export default function ImportScreen() {
           ))}
         </View>
 
-        <Txt style={{ fontSize: 13, fontWeight: '700', color: t.muted, marginBottom: 10 }}>{tr((s) => s.import.saveToCookbook)}</Txt>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 9, paddingBottom: 4 }} style={{ marginBottom: 24 }}>
-          {[...cookbooks, ...COOKBOOKS].map((c) => <Tag key={c.id} t={t} active={cookbook === c.id} onPress={() => setCookbook(c.id)}>{c.name}</Tag>)}
-        </ScrollView>
+        {cookbooks.length > 0 ? (
+          <>
+            <Txt style={{ fontSize: 13, fontWeight: '700', color: t.muted, marginBottom: 10 }}>{tr((s) => s.import.saveToCookbook)}</Txt>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 9, paddingBottom: 4 }} style={{ marginBottom: 24 }}>
+              {cookbooks.map((c) => <Tag key={c.id} t={t} active={cookbook === c.id} onPress={() => setCookbook(cookbook === c.id ? '' : c.id)}>{c.name}</Tag>)}
+            </ScrollView>
+          </>
+        ) : null}
 
         <PrimaryButton t={t} full icon={<Icon.bookmark size={18} sw={2.2} color={t.accentText} />}
           onPress={async () => {

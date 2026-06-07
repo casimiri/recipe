@@ -104,6 +104,6 @@ export interface Profile {
   handle: string;
   avatar: string;
   bio: string;
-  stats: { recipes: number; cookbooks: number; followers: number; following: number };
+  stats: { recipes: number; cookbooks: number };
   created: string[];
 }

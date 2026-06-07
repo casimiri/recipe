@@ -4,7 +4,7 @@
 // AsyncStorage cache that also serves as the offline source of truth.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase, isSupabaseConfigured } from './supabase';
-import { RECIPES as SEED_RECIPES, MEAL_PLAN } from '../data/seed';
+import { RECIPES as SEED_RECIPES, MEAL_PLAN, COOKBOOKS as SEED_COOKBOOKS } from '../data/seed';
 import type { Recipe, WeekPlan } from '../data/types';
 
 /** A logged cook: which recipe, the star rating (0 = unrated), and when. */
@@ -80,7 +80,11 @@ export const DEFAULT_STATE: UserState = {
   ],
   diet: [],
   units: 'metric',
-  cookbooks: [],
+  // Real, deletable starter cookbooks for new accounts (built from the seed
+  // catalog). Existing users keep their own stored `cookbooks` — the hydration
+  // merge ({ ...DEFAULT_STATE, ...stored }) means this default only applies to
+  // fresh state, so nobody is retro-fitted with starters they've never seen.
+  cookbooks: SEED_COOKBOOKS.map((c) => ({ id: c.id, name: c.name, recipeIds: [...c.cover] })),
   recentSearches: [],
   created: ['pasta', 'oats'],
   reminders: [],

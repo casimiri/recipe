@@ -10,12 +10,11 @@ import { Icon } from '../../components/Icon';
 import { IconBtn, Scrim } from '../../components/atoms';
 import { RecipeCard } from '../../components/RecipeCard';
 import { CookbookCover } from '../../components/CookbookCover';
-import { COOKBOOKS } from '../../data/seed';
 
 export default function CookbookDetail() {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { saved, byId, recipes, isSaved, toggleSave, cookbooks, removeFromCookbook, deleteCookbook } = useApp();
+  const { saved, byId, isSaved, toggleSave, cookbooks, removeFromCookbook, deleteCookbook } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -45,9 +44,9 @@ export default function CookbookDetail() {
     name = userCb.name;
     ids = userCb.recipeIds;
   } else {
-    const seed = COOKBOOKS.find((c) => c.id === id)!;
-    name = seed.name;
-    ids = [...new Set([...seed.cover, ...recipes.map((r) => r.id)])].slice(0, seed.count || 6);
+    // Unknown id (e.g. a stale deep link) — render an empty cookbook.
+    name = '';
+    ids = [];
   }
 
   const list = [...new Set(ids)].map(byId).filter(Boolean) as NonNullable<ReturnType<typeof byId>>[];
