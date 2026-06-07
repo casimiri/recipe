@@ -69,39 +69,46 @@ function renderQty(units: Record<string, number>): string {
 }
 
 /**
- * Build the grocery list for a week plan. A recipe planned on multiple days
- * contributes its ingredients once (you buy the ingredients, not per-serving).
+ * Build the grocery list for a week plan. A recipe planned on multiple slots is
+ * cooked that many times, so its ingredient quantities are multiplied by the
+ * number of slots it fills (plan tacos twice → buy twice the ingredients).
  */
 export function buildGroceryList(
   plan: WeekPlan,
   byId: (id: string) => Recipe | undefined,
   units: UnitSystem,
+  pantryStaples: string[] = [],
 ): GroceryAisle[] {
-  const groups = new Map<string, Agg>();
-  const seen = new Set<string>();
+  const staples = new Set(pantryStaples);
+  // Tally how many plan slots each recipe fills.
+  const counts = new Map<string, number>();
   for (const day of Object.values(plan)) {
     for (const slot of SLOTS) {
       const id = day?.[slot];
-      if (!id || seen.has(id)) continue;
-      seen.add(id);
-      const recipe = byId(id);
-      if (!recipe) continue;
-      for (const ing of recipe.ingredients) {
-        const display = cleanName(ing.item);
-        const key = slug(display);
-        if (!key || IGNORE.some((w) => key === w || key.startsWith(w + '-'))) continue;
-        let g = groups.get(key);
-        if (!g) { g = { name: display, from: new Set(), units: {} }; groups.set(key, g); }
-        g.from.add(recipe.title);
-        const conv = ing.qty ? convertUnit(ing.qty, ing.unit, units) : { qty: 0, unit: ing.unit };
-        const u = conv.unit.trim();
-        g.units[u] = (g.units[u] ?? 0) + (conv.qty || 0);
-      }
+      if (id) counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+  }
+
+  const groups = new Map<string, Agg>();
+  for (const [id, count] of counts) {
+    const recipe = byId(id);
+    if (!recipe) continue;
+    for (const ing of recipe.ingredients) {
+      const display = cleanName(ing.item);
+      const key = slug(display);
+      if (!key || IGNORE.some((w) => key === w || key.startsWith(w + '-'))) continue;
+      let g = groups.get(key);
+      if (!g) { g = { name: display, from: new Set(), units: {} }; groups.set(key, g); }
+      g.from.add(recipe.title);
+      const conv = ing.qty ? convertUnit(ing.qty, ing.unit, units) : { qty: 0, unit: ing.unit };
+      const u = conv.unit.trim();
+      g.units[u] = (g.units[u] ?? 0) + (conv.qty || 0) * count;
     }
   }
 
   const byAisle = new Map<string, GroceryItem[]>();
   for (const [key, g] of groups) {
+    if (staples.has(`g:${key}`)) continue; // user always has this — hide it
     const aisle = aisleFor(g.name);
     const item: GroceryItem = {
       id: `g:${key}`,

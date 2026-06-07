@@ -12,11 +12,13 @@ import { Icon } from '../../components/Icon';
 import { Avatar, SectionHead, Dish } from '../../components/atoms';
 import { RecipeCard } from '../../components/RecipeCard';
 import { SearchBar, CategoryRow } from '../../components/Home';
+import { DAYS } from '../../data/seed';
+import type { MealSlot } from '../../data/types';
 
 export default function Home() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { recipes, byId, isSaved, toggleSave, unread, profile, diet, tastes, refresh, recentlyViewed } = useApp();
+  const { recipes, byId, isSaved, toggleSave, unread, profile, diet, tastes, refresh, recentlyViewed, plan } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [cat, setCat] = useState('popular');
@@ -35,6 +37,12 @@ export default function Home() {
   for (let i = 0; i < shown.length; i += 2) rows.push(shown.slice(i, i + 2));
 
   const recent = recentlyViewed.map(byId).filter(Boolean) as NonNullable<ReturnType<typeof byId>>[];
+
+  // Today's planned meals (JS getDay 0=Sun → the Mon…Sun plan keys).
+  const todaySlots = plan[DAYS[(new Date().getDay() + 6) % 7]] || {};
+  const todayMeals = (['breakfast', 'lunch', 'dinner'] as MealSlot[])
+    .map((slot) => ({ slot, rec: todaySlots[slot] ? byId(todaySlots[slot]!) : undefined }))
+    .filter((m) => m.rec) as { slot: MealSlot; rec: NonNullable<ReturnType<typeof byId>> }[];
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
@@ -63,6 +71,35 @@ export default function Home() {
 
       <View style={{ marginBottom: 20 }}>
         <SearchBar t={t} onPress={() => router.push('/search')} onFilter={() => router.push({ pathname: '/search', params: { filter: '1' } })} />
+      </View>
+
+      {/* Today's plan */}
+      <View style={{ marginBottom: 22 }}>
+        <SectionHead title={tr((s) => s.home.today)} action={tr((s) => s.tabs.plan)} onAction={() => router.push('/(tabs)/planner')} t={t} style={{ marginBottom: 12 }} />
+        {todayMeals.length > 0 ? (
+          <View style={{ gap: 8 }}>
+            {todayMeals.map(({ slot, rec }) => (
+              <Pressable key={slot} onPress={() => router.push(`/recipe/${rec.id}`)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 8, borderRadius: t.radius, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}>
+                <Dish src={rec.img} alt={rec.title} radius={t.radiusSm} style={{ width: 54, height: 54 }} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Txt style={{ fontSize: 11.5, fontWeight: '700', color: t.accent, textTransform: 'uppercase', letterSpacing: 0.5 }}>{tr((s) => s.planner[slot])}</Txt>
+                  <Txt numberOfLines={1} style={{ fontWeight: '700', fontSize: 14.5, color: t.text }}>{rec.title}</Txt>
+                </View>
+                <Icon.chevR size={20} sw={2} color={t.faint} />
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <Pressable onPress={() => router.push('/(tabs)/planner')}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: t.radius, backgroundColor: t.surface, borderWidth: 1, borderColor: t.border }}>
+            <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: t.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon.calendar size={20} sw={2} color={t.accent} />
+            </View>
+            <Txt style={{ flex: 1, fontSize: 14, color: t.muted }}>{tr((s) => s.home.nothingPlanned)}</Txt>
+            <Icon.chevR size={20} sw={2} color={t.faint} />
+          </Pressable>
+        )}
       </View>
 
       {recent.length > 0 ? (

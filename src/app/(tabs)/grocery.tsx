@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Pressable, ScrollView, TextInput } from 'react-native';
+import { View, Pressable, ScrollView, TextInput, Share, Alert } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -7,13 +8,13 @@ import { useI18n } from '../../i18n';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
-import { IconBtn, PrimaryButton } from '../../components/atoms';
-import type { GroceryAisle } from '../../data/types';
+import { IconBtn, PrimaryButton, Tag } from '../../components/atoms';
+import type { GroceryAisle, GroceryItem } from '../../data/types';
 
 export default function Grocery() {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { groceryAisles, groceryChecked, toggleGrocery, setGroceryChecked, groceryExtra, addGroceryItem, removeGroceryItem } = useApp();
+  const { groceryAisles, groceryChecked, toggleGrocery, setGroceryChecked, groceryExtra, addGroceryItem, removeGroceryItem, pantryStaples, togglePantryStaple } = useApp();
   const extraIds = new Set(groceryExtra.map((g) => g.id));
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -35,6 +36,27 @@ export default function Grocery() {
     groups = groceryExtra.length ? [...groceryAisles, { aisle: tr((s) => s.grocery.addedByYou), items: groceryExtra }] : groceryAisles;
   }
 
+  // Plain-text export of the list (grouped as shown) for the native share sheet.
+  const shareList = () => {
+    const lines = [tr((s) => s.grocery.title)];
+    for (const g of groups) {
+      lines.push('', g.aisle.toUpperCase());
+      for (const i of g.items) lines.push(`- ${i.qty ? i.qty + ' ' : ''}${i.name}`);
+    }
+    Share.share({ message: lines.join('\n') }).catch(() => {});
+  };
+
+  // Long-press a generated item to mark it a pantry staple (hidden from lists).
+  const confirmStaple = (item: GroceryItem) =>
+    Alert.alert(tr((s) => s.grocery.alwaysHave), tr((s) => s.grocery.alwaysHaveBody, { name: item.name }), [
+      { text: tr((s) => s.common.cancel), style: 'cancel' },
+      { text: tr((s) => s.grocery.hide), onPress: () => togglePantryStaple(item.id) },
+    ]);
+  const stapleLabel = (id: string) => {
+    const s = id.replace(/^g:/, '').replace(/-/g, ' ');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
@@ -43,7 +65,10 @@ export default function Grocery() {
           <Txt style={{ fontWeight: '800', fontSize: 27, color: t.text }}>{tr((s) => s.grocery.title)}</Txt>
           <Txt style={{ fontSize: 13.5, color: t.muted, marginTop: 3 }}>{tr((s) => s.grocery.itemsChecked, { done: doneCount, total })}</Txt>
         </View>
-        <IconBtn t={t} onPress={() => router.push('/(tabs)')}><Icon.x size={20} sw={2.2} color={t.text} /></IconBtn>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {total > 0 ? <IconBtn t={t} onPress={shareList}><Icon.share size={19} sw={2} color={t.text} /></IconBtn> : null}
+          <IconBtn t={t} onPress={() => router.push('/(tabs)')}><Icon.x size={20} sw={2.2} color={t.text} /></IconBtn>
+        </View>
       </View>
 
       <View style={{ height: 8, borderRadius: 999, backgroundColor: t.surface2, overflow: 'hidden', marginBottom: 16 }}>
@@ -70,23 +95,41 @@ export default function Grocery() {
           <Txt style={{ fontSize: 12.5, fontWeight: '800', color: t.accent, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 6 }}>{g.aisle}</Txt>
           {g.items.map((item) => {
             const on = groceryChecked.includes(item.id);
+            const extra = extraIds.has(item.id);
+            // Swipe left to commit: own items are removed, planned items are hidden as staples.
+            const onSwipe = () => (extra ? removeGroceryItem(item.id) : togglePantryStaple(item.id));
             return (
-              <Pressable key={item.id} onPress={() => toggleGrocery(item.id)} style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: t.border }}>
-                <View style={{ width: 24, height: 24, borderRadius: 8, borderWidth: on ? 0 : 2, borderColor: t.borderStrong, backgroundColor: on ? t.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
-                  {on ? <Icon.check size={14} sw={3} color={t.accentText} /> : null}
-                </View>
-                <View style={{ flex: 1, opacity: on ? 0.42 : 1 }}>
-                  <Txt style={{ fontSize: 15, fontWeight: '600', color: t.text, textDecorationLine: on ? 'line-through' : 'none' }}>{item.name}</Txt>
-                  {groupBy === 'aisle' ? <Txt style={{ fontSize: 12, color: t.faint }}>{item.from}</Txt> : null}
-                </View>
-                {extraIds.has(item.id) ? (
-                  <Pressable onPress={() => removeGroceryItem(item.id)} hitSlop={10} style={{ padding: 4 }}>
-                    <Icon.x size={18} sw={2.2} color={t.faint} />
-                  </Pressable>
-                ) : (
-                  <Txt style={{ fontSize: 13.5, color: t.muted, fontWeight: '600' }}>{item.qty}</Txt>
-                )}
-              </Pressable>
+              <Swipeable key={item.id} overshootRight={false}
+                onSwipeableOpen={(dir) => { if (dir === 'right') onSwipe(); }}
+                renderRightActions={() => (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 22, backgroundColor: extra ? t.danger : t.accent }}>
+                    {extra ? <Icon.trash size={18} sw={2} color="#fff" /> : <Icon.minus size={18} sw={2.5} color={t.accentText} />}
+                    <Txt style={{ color: extra ? '#fff' : t.accentText, fontWeight: '700', fontSize: 13 }}>{extra ? tr((s) => s.grocery.remove) : tr((s) => s.grocery.hide)}</Txt>
+                  </View>
+                )}>
+                <Pressable onPress={() => toggleGrocery(item.id)} onLongPress={extra ? undefined : () => confirmStaple(item)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: t.border, backgroundColor: t.bg }}>
+                  <View style={{ width: 24, height: 24, borderRadius: 8, borderWidth: on ? 0 : 2, borderColor: t.borderStrong, backgroundColor: on ? t.accent : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                    {on ? <Icon.check size={14} sw={3} color={t.accentText} /> : null}
+                  </View>
+                  <View style={{ flex: 1, opacity: on ? 0.42 : 1 }}>
+                    <Txt style={{ fontSize: 15, fontWeight: '600', color: t.text, textDecorationLine: on ? 'line-through' : 'none' }}>{item.name}</Txt>
+                    {groupBy === 'aisle' ? <Txt style={{ fontSize: 12, color: t.faint }}>{item.from}</Txt> : null}
+                  </View>
+                  {extra ? (
+                    <Pressable onPress={() => removeGroceryItem(item.id)} hitSlop={10} style={{ padding: 4 }}>
+                      <Icon.x size={18} sw={2.2} color={t.muted} />
+                    </Pressable>
+                  ) : (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <Txt style={{ fontSize: 13.5, color: t.muted, fontWeight: '600' }}>{item.qty}</Txt>
+                      <Pressable onPress={() => confirmStaple(item)} hitSlop={8} style={{ padding: 2 }}>
+                        <Icon.minus size={18} sw={2.5} color={t.faint} />
+                      </Pressable>
+                    </View>
+                  )}
+                </Pressable>
+              </Swipeable>
             );
           })}
         </View>
@@ -101,6 +144,16 @@ export default function Grocery() {
           onSubmitEditing={submitAdd}
           style={{ flex: 1, fontSize: 15, color: t.text, fontFamily: t.body, paddingVertical: 6 }} />
       </View>
+
+      {pantryStaples.length > 0 ? (
+        <View style={{ marginBottom: 22 }}>
+          <Txt style={{ fontSize: 12.5, fontWeight: '800', color: t.muted, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 }}>{tr((s) => s.grocery.pantryStaples)}</Txt>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {pantryStaples.map((id) => <Tag key={id} t={t} onPress={() => togglePantryStaple(id)}>{stapleLabel(id)}</Tag>)}
+          </View>
+          <Txt style={{ fontSize: 12, color: t.faint, marginTop: 8 }}>{tr((s) => s.grocery.pantryHint)}</Txt>
+        </View>
+      ) : null}
 
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <PrimaryButton t={t} ghost full onPress={() => setGroceryChecked([])}>{tr((s) => s.grocery.clearChecked)}</PrimaryButton>

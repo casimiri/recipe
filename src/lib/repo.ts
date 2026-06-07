@@ -36,6 +36,8 @@ export interface UserState {
   plan: WeekPlan;
   groceryChecked: string[];
   groceryExtra: { id: string; name: string; qty: string; from: string }[];
+  /** Generated grocery item ids the user "always has" — hidden from auto lists. */
+  pantryStaples: string[];
   tastes: string[];
   cooked: CookLog[];
   /** Dietary preferences (recipe tags); recipes shown must match all of these. */
@@ -79,6 +81,7 @@ export const DEFAULT_STATE: UserState = {
   plan: JSON.parse(JSON.stringify(MEAL_PLAN)),
   groceryChecked: ['g:honey', 'g:salt'],
   groceryExtra: [],
+  pantryStaples: [],
   tastes: [],
   cooked: [
     { id: 'curry', rating: 5, at: 0 },

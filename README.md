@@ -9,13 +9,13 @@ planning, shopping for, and cooking recipes.
 ## Features
 
 - **Onboarding** — welcome + 3 value slides + taste preferences
-- **Home** — greeting, search, a **recently-viewed** rail, category pills, recipe grid **personalized by your onboarding tastes** (matching recipes float to the top; shows as "For you")
+- **Home** — greeting, search, a **"Today" card** with today's planned breakfast/lunch/dinner from your meal plan (tap straight to the recipe), a **recently-viewed** rail, category pills, recipe grid **personalized by your onboarding tastes** (matching recipes float to the top; shows as "For you")
 - **Search** — live filtering, trending searches, **recent searches** (per-user, synced), browse-by-category, filter sheet
 - **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **community reviews** (read everyone's, write/edit/delete your own rating + comment; a star tap is a quick rating, and real reviews blend into the recipe's shown score **everywhere** via a DB trigger), AI tools (**Scale / Substitute / Make easier**), **add to cookbook**, **edit** your own imported recipes, and **share & export** (copy link, native share sheet, print, save as **PDF**)
 - **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to your library, optionally filing it into one of your cookbooks
 - **Cook mode** — full-screen step-by-step with step **timers** (fire a local **notification** when they finish, so they alert you even if the app is backgrounded) and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
 - **Meal planner** — weekly calendar with breakfast / lunch / dinner slots, plus an optional **meal reminders** toggle that schedules weekly local notifications ("Time to cook X") for planned meals
-- **Smart grocery list** — **auto-generated from your meal plan**: the planned recipes' ingredients are aggregated (duplicates merged across recipes, quantities summed and shown in your unit system) and grouped by aisle or recipe, with progress, **add/remove your own items** (with an optional quantity), and an order-delivery flow
+- **Smart grocery list** — **auto-generated from your meal plan**: the planned recipes' ingredients are aggregated (duplicates merged across recipes, quantities summed — and **scaled up when a recipe is planned for several days** — shown in your unit system) and grouped by aisle or recipe, with progress, **add/remove your own items** (with an optional quantity), **pantry staples** (long-press, tap the −, or swipe a planned item to mark "always have" and hide it; swipe your own items to remove), **share/export the list** (native share sheet), and an order-delivery flow
 - **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes; **taste preferences** (set at onboarding) are also editable in Settings and float matching recipes to the top of the home feed
 - **Cookbooks** — browse, **create and delete your own**, and add/remove recipes (new accounts start with a few **starter cookbooks** built from the catalog); plus **Profile** (created / saved / cooked / reviewed tabs, with **star ratings + re-rate** on cooked recipes, and live **recipes / cookbooks / cooked** counts), **Notifications** (a real **activity feed** — your cooks, saves, meal-plan adds, imports and reviews, plus cook-timer reminders — with an unread badge), **Settings**
 - **Languages** — **English, French, Spanish, German**; defaults to the device language and switchable in Settings. Translates the whole UI, the seed recipe catalog (titles/descriptions/ingredients/steps), and **AI output** — imported recipes and the Substitute / Make-easier tools come back in the active language (enum-ish fields stay English so filtering keeps working)
@@ -262,7 +262,7 @@ on conflict (id) do nothing;
   than replace it.
 - **`profiles`** — auto-created on sign-up via a trigger.
 - **`user_state`** — per-user JSON blob (saved recipes, meal plan, grocery
-  checks/extras, tastes, cooked history with ratings, your own per-recipe
+  checks/extras/pantry-staples, tastes, cooked history with ratings, your own per-recipe
   ratings, dietary preferences,
   unit system, cookbooks (seeded with starter collections for new accounts),
   recent searches, recently-viewed recipes, app-generated reminders

@@ -45,6 +45,10 @@ interface AppCtx {
   groceryExtra: GroceryItem[];
   addGroceryItem: (name: string, qty?: string) => void;
   removeGroceryItem: (id: string) => void;
+  /** Generated grocery item ids hidden as "always have" staples. */
+  pantryStaples: string[];
+  /** Toggle whether a generated grocery item is a pantry staple (hidden from lists). */
+  togglePantryStaple: (id: string) => void;
   tastes: string[];
   setTastes: (t: string[]) => void;
   cooked: CookLog[];
@@ -198,8 +202,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
   // active unit system). Built from the base catalog — like the rest of the
   // grocery tab, item names stay in English.
   const groceryAisles = useMemo(
-    () => buildGroceryList(state.plan, (id) => recipes.find((r) => r.id === id), state.units),
-    [state.plan, recipes, state.units],
+    () => buildGroceryList(state.plan, (id) => recipes.find((r) => r.id === id), state.units, state.pantryStaples),
+    [state.plan, recipes, state.units, state.pantryStaples],
   );
 
   // For signed-in users the server aggregates real reviews into recipe.rating
@@ -351,6 +355,16 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({
         ...s,
         groceryExtra: s.groceryExtra.filter((g) => g.id !== id),
+        groceryChecked: s.groceryChecked.filter((x) => x !== id),
+      })),
+    pantryStaples: state.pantryStaples,
+    togglePantryStaple: (id) =>
+      setState((s) => ({
+        ...s,
+        pantryStaples: s.pantryStaples.includes(id)
+          ? s.pantryStaples.filter((x) => x !== id)
+          : [...s.pantryStaples, id],
+        // A hidden staple shouldn't keep a stale "checked" mark.
         groceryChecked: s.groceryChecked.filter((x) => x !== id),
       })),
     tastes: state.tastes,
