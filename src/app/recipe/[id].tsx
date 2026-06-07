@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Pressable, ScrollView, ActivityIndicator, Share, TextInput } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Print from 'expo-print';
@@ -9,12 +9,14 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
 import { trEnum } from '../../i18n/enums';
 import { useApp } from '../../store/AppState';
+import { useAuth } from '../../store/auth';
 import { Paywall } from '../../components/Paywall';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
 import {
-  Dish, IconBtn, RatingBadge, SourceTag, StatChip, PrimaryButton, Sheet, Tag, Scrim,
+  Avatar, Dish, IconBtn, RatingBadge, SourceTag, StatChip, PrimaryButton, Sheet, Tag, Scrim,
 } from '../../components/atoms';
+import { listReviews, type Review } from '../../lib/repo';
 import { fmtQty, convertUnit } from '../../utils/format';
 import { recipeHtml, recipeUrl } from '../../lib/share';
 import { aiTool } from '../../lib/ai';
@@ -45,7 +47,8 @@ function AiChip({ t, icon, label, onPress, active }: { t: Tokens; icon: React.Re
 export default function RecipeDetail() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse, ratings, setRecipeRating } = useApp();
+  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse, ratings, setRecipeRating, addReview } = useApp();
+  const { session } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -56,8 +59,12 @@ export default function RecipeDetail() {
   const [checked, setChecked] = useState<string[]>([]);
   const [easier, setEasier] = useState(false);
   const [easySteps, setEasySteps] = useState<{ t: string; d: string }[] | null>(null);
-  const [sheet, setSheet] = useState<null | 'sub' | 'scale' | 'plan' | 'added' | 'planned' | 'share' | 'cookbook' | 'addedCb'>(null);
+  const [sheet, setSheet] = useState<null | 'sub' | 'scale' | 'plan' | 'added' | 'planned' | 'share' | 'cookbook' | 'addedCb' | 'review'>(null);
   const [newCb, setNewCb] = useState('');
+  const [reviews, setReviews] = useState<Review[] | null>(null);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewStars, setReviewStars] = useState(0);
+  const [reviewBusy, setReviewBusy] = useState(false);
   const [subItem, setSubItem] = useState<Ingredient | null>(null);
   const [subs, setSubs] = useState<string[] | null>(null);
   const [subLoading, setSubLoading] = useState(false);
@@ -121,6 +128,31 @@ export default function RecipeDetail() {
     setSubLoading(false);
   };
 
+  // Load community reviews for this recipe.
+  useEffect(() => {
+    let active = true;
+    setReviews(null);
+    listReviews(r.id).then((rs) => { if (active) setReviews(rs); });
+    return () => { active = false; };
+  }, [r.id]);
+
+  const openReview = () => {
+    setReviewStars(ratings[r.id] ?? 0);
+    setReviewText('');
+    setSheet('review');
+  };
+
+  const submitReview = async () => {
+    if (!reviewStars) return;
+    setReviewBusy(true);
+    const ok = await addReview(r.id, reviewStars, reviewText.trim());
+    setReviewBusy(false);
+    if (!ok) return;
+    setSheet(null);
+    const rs = await listReviews(r.id);
+    setReviews(rs);
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: t.surface }}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
@@ -130,6 +162,9 @@ export default function RecipeDetail() {
           <View style={{ position: 'absolute', top: insets.top + 4, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between' }}>
             <IconBtn t={t} glass onPress={() => router.back()}><Icon.back size={22} sw={2.2} color={t.text} /></IconBtn>
             <View style={{ flexDirection: 'row', gap: 10 }}>
+              {r.imported ? (
+                <IconBtn t={t} glass onPress={() => router.push({ pathname: '/edit-recipe', params: { id: r.id } })}><Icon.edit size={19} sw={2} color={t.text} /></IconBtn>
+              ) : null}
               <IconBtn t={t} glass onPress={() => setSheet('share')}><Icon.shareIos size={20} sw={2} color={t.text} /></IconBtn>
               <IconBtn t={t} glass active={saved} onPress={() => toggleSave(r.id)}>
                 {saved ? <Icon.bookmarkFill size={19} color={t.accentText} /> : <Icon.bookmark size={19} sw={2.2} color={t.text} />}
@@ -276,6 +311,39 @@ export default function RecipeDetail() {
             </View>
           </View>
 
+          {/* Reviews */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 32, marginBottom: 14 }}>
+            <Txt style={{ fontWeight: '800', fontSize: 20, color: t.text }}>{tr((s) => s.recipe.reviews)}</Txt>
+            {session ? (
+              <Pressable onPress={openReview} hitSlop={6} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Icon.edit size={15} sw={2} color={t.accent} />
+                <Txt style={{ color: t.accent, fontWeight: '700', fontSize: 13.5 }}>{tr((s) => s.recipe.writeReview)}</Txt>
+              </Pressable>
+            ) : null}
+          </View>
+          {reviews === null ? (
+            <ActivityIndicator color={t.accent} style={{ alignSelf: 'flex-start' }} />
+          ) : reviews.length === 0 ? (
+            <Txt style={{ fontSize: 13.5, color: t.muted }}>{tr((s) => s.recipe.noReviews)}</Txt>
+          ) : (
+            <View style={{ gap: 16 }}>
+              {reviews.map((rv) => (
+                <View key={rv.id} style={{ flexDirection: 'row', gap: 12 }}>
+                  <Avatar src={rv.authorAvatar || undefined} size={38} t={t} />
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Txt style={{ fontWeight: '700', fontSize: 14, color: t.text }}>{rv.authorName}</Txt>
+                      <View style={{ flexDirection: 'row', gap: 2 }}>
+                        {[1, 2, 3, 4, 5].map((n) => <Icon.star key={n} size={13} color={n <= rv.rating ? t.star : t.border} />)}
+                      </View>
+                    </View>
+                    {rv.body ? <Txt style={{ fontSize: 13.5, color: t.muted, lineHeight: 20, marginTop: 3 }}>{rv.body}</Txt> : null}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* Add to plan */}
           <Pressable onPress={() => setSheet('plan')} style={{ marginTop: 24, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 15, borderRadius: t.radius, borderWidth: 1, borderColor: t.border, backgroundColor: t.surface }}>
             <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: t.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
@@ -413,6 +481,25 @@ export default function RecipeDetail() {
       <ConfirmSheet open={sheet === 'addedCb'} onClose={() => setSheet(null)} t={t} icon={<Icon.book size={26} sw={2} color={t.accent} />}
         title={tr((s) => s.recipe.addedToCookbook)} body={tr((s) => s.recipe.savedToCookbookBody, { title: r.title })}
         cta={tr((s) => s.recipe.viewCookbooks)} onCta={() => router.push('/(tabs)/cookbooks')} />
+
+      {/* Write a review */}
+      <Sheet open={sheet === 'review'} onClose={() => setSheet(null)} t={t} title={tr((s) => s.recipe.writeReview)}>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 6, marginBottom: 16 }}>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <Pressable key={n} hitSlop={4} onPress={() => setReviewStars(n)}>
+              <Icon.star size={34} color={n <= reviewStars ? t.star : t.border} />
+            </Pressable>
+          ))}
+        </View>
+        <TextInput
+          value={reviewText} onChangeText={setReviewText} multiline
+          placeholder={tr((s) => s.recipe.reviewPlaceholder)} placeholderTextColor={t.faint}
+          style={{ backgroundColor: t.surface2, borderRadius: t.radiusSm, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: t.text, fontFamily: t.body, minHeight: 90, textAlignVertical: 'top', borderWidth: 1, borderColor: t.border, marginBottom: 16 }}
+        />
+        <PrimaryButton t={t} full disabled={!reviewStars || reviewBusy} onPress={submitReview}>
+          {reviewBusy ? tr((s) => s.auth.pleaseWait) : tr((s) => s.recipe.postReview)}
+        </PrimaryButton>
+      </Sheet>
 
       <Paywall open={payOpen} onClose={() => setPayOpen(false)} reachedLimit />
     </View>

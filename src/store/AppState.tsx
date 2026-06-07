@@ -3,7 +3,8 @@
 // applies updates locally, and persists in the background.
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
-  listRecipes, addRecipe, deleteRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
+  listRecipes, addRecipe, updateRecipe as updateRecipeRepo, deleteRecipe, loadUserState, saveUserState, getProfile, upsertProfile,
+  addReview as addReviewRepo,
   DEFAULT_STATE, UserState, ProfileRow, CookLog, UserCookbook, AppReminder,
   getBillingConfig, getSubscription, startSubscription, aiPeriod, oneMonthFromNow, type BillingConfig,
 } from '../lib/repo';
@@ -23,6 +24,8 @@ interface AppCtx {
   toggleSave: (id: string) => void;
   isSaved: (id: string) => boolean;
   saveRecipe: (r: Recipe) => Promise<void>;
+  /** Patch an owned recipe's editable fields (merged into the base, then synced). */
+  updateRecipe: (id: string, patch: Partial<Recipe>) => Promise<void>;
   deleteCreatedRecipe: (id: string) => void;
   plan: WeekPlan;
   setPlan: (p: WeekPlan) => void;
@@ -44,6 +47,8 @@ interface AppCtx {
   rateCook: (id: string, rating: number) => void;
   ratings: Record<string, number>;
   setRecipeRating: (id: string, rating: number) => void;
+  /** Post the signed-in user's review (rating + text); false if not signed in. */
+  addReview: (recipeId: string, rating: number, body: string) => Promise<boolean>;
   diet: string[];
   setDiet: (d: string[]) => void;
   units: 'metric' | 'imperial';
@@ -234,6 +239,15 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       logActivity('import', r.id);
       await addRecipe(r, user?.id);
     },
+    // Edit an owned recipe. Patch is merged into the BASE (un-localized,
+    // un-rated) recipe so we never persist display-time overlays back to source.
+    updateRecipe: async (id, patch) => {
+      const base = recipes.find((x) => x.id === id);
+      if (!base) return;
+      const next = { ...base, ...patch };
+      setRecipes((rs) => rs.map((x) => (x.id === id ? next : x)));
+      await updateRecipeRepo(next, user?.id);
+    },
     // Delete a recipe from the user's Created collection. If it's an owned
     // import, also remove it from the catalog/DB and purge references; seed
     // recipes are only dropped from `created` (the shared catalog is left intact).
@@ -248,6 +262,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         if (!owned) return next;
         next.saved = s.saved.filter((x) => x !== id);
         next.cooked = s.cooked.filter((c) => c.id !== id);
+        const ratings = { ...s.ratings };
+        delete ratings[id];
+        next.ratings = ratings;
         next.cookbooks = s.cookbooks.map((c) => ({ ...c, recipeIds: c.recipeIds.filter((x) => x !== id) }));
         const plan: WeekPlan = {};
         for (const [day, slots] of Object.entries(s.plan)) {
@@ -304,6 +321,12 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     ratings: state.ratings,
     setRecipeRating: (id, rating) =>
       setState((s) => ({ ...s, ratings: { ...s.ratings, [id]: rating } })),
+    addReview: async (recipeId, rating, body) => {
+      if (!user?.id) return false;
+      // Keep the user's private star rating in sync with their review rating.
+      setState((s) => ({ ...s, ratings: { ...s.ratings, [recipeId]: rating } }));
+      return addReviewRepo(recipeId, user.id, rating, body, { name: profile.name, avatar: profile.avatar || null });
+    },
     // Re-rate an existing cook in place (keeps its date + position).
     rateCook: (id, rating) =>
       setState((s) => ({
@@ -393,7 +416,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       setState((s) => ({ ...s, pro: true, proRenewsAt: oneMonthFromNow() }));
       return true;
     },
-  }), [ready, localizedRecipes, ratedRecipes, groceryAisles, state, unread, user?.id, profile, billing, aiRemaining, canUseAi, proActive]);
+  }), [ready, recipes, localizedRecipes, ratedRecipes, groceryAisles, state, unread, user?.id, profile, billing, aiRemaining, canUseAi, proActive]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -178,12 +178,69 @@ export async function addRecipe(r: Recipe, userId?: string): Promise<void> {
   }
 }
 
+/** Update a user's own recipe (RLS scopes the DB update to owner = auth.uid()). */
+export async function updateRecipe(r: Recipe, userId?: string): Promise<void> {
+  if (recipeCache) recipeCache = recipeCache.map((x) => (x.id === r.id ? r : x));
+  if (isSupabaseConfigured && supabase) {
+    await supabase.from('recipes').update(recipeToRow(r, userId)).eq('id', r.id).then(() => {}, () => {});
+  }
+}
+
 /** Delete a user's own recipe (RLS scopes the DB delete to owner = auth.uid()). */
 export async function deleteRecipe(id: string): Promise<void> {
   if (recipeCache) recipeCache = recipeCache.filter((x) => x.id !== id);
   if (isSupabaseConfigured && supabase) {
     await supabase.from('recipes').delete().eq('id', id).then(() => {}, () => {});
   }
+}
+
+// ── Reviews ────────────────────────────────────────────────
+export interface Review {
+  id: string;
+  recipeId: string;
+  userId: string;
+  rating: number;
+  body: string;
+  authorName: string;
+  authorAvatar: string | null;
+  createdAt: string;
+}
+
+/** Community reviews for a recipe, newest first (empty when offline/unconfigured). */
+export async function listReviews(recipeId: string): Promise<Review[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase
+    .from('recipe_reviews')
+    .select('id, recipe_id, user_id, rating, body, author_name, author_avatar, created_at')
+    .eq('recipe_id', recipeId)
+    .order('created_at', { ascending: false });
+  if (error || !data) return [];
+  return data.map((row: any) => ({
+    id: row.id,
+    recipeId: row.recipe_id,
+    userId: row.user_id,
+    rating: row.rating,
+    body: row.body ?? '',
+    authorName: row.author_name || 'Anonymous',
+    authorAvatar: row.author_avatar ?? null,
+    createdAt: row.created_at,
+  }));
+}
+
+/** Create or update the signed-in user's review (one per recipe). */
+export async function addReview(
+  recipeId: string,
+  userId: string,
+  rating: number,
+  body: string,
+  author: { name: string; avatar: string | null },
+): Promise<boolean> {
+  if (!isSupabaseConfigured || !supabase) return false;
+  const { error } = await supabase.from('recipe_reviews').upsert(
+    { recipe_id: recipeId, user_id: userId, rating, body, author_name: author.name, author_avatar: author.avatar },
+    { onConflict: 'recipe_id,user_id' },
+  );
+  return !error;
 }
 
 async function readLocal(userId?: string): Promise<UserState | null> {
