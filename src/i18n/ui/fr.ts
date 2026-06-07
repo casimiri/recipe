@@ -78,6 +78,7 @@ export const fr: UIStrings = {
     popularRecipes: 'Recettes populaires',
     categoryRecipes: 'Recettes {cat}',
     forYou: 'Pour vous',
+    recentlyViewed: 'Vus récemment',
     trending: 'Tendances',
     categories: 'Catégories',
     seeAll: 'Tout voir',

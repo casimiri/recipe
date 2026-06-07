@@ -78,6 +78,7 @@ export const de: UIStrings = {
     popularRecipes: 'Beliebte Rezepte',
     categoryRecipes: '{cat}-Rezepte',
     forYou: 'Für dich',
+    recentlyViewed: 'Zuletzt angesehen',
     trending: 'Im Trend',
     categories: 'Kategorien',
     seeAll: 'Alle ansehen',

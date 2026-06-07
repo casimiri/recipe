@@ -9,7 +9,7 @@ planning, shopping for, and cooking recipes.
 ## Features
 
 - **Onboarding** — welcome + 3 value slides + taste preferences
-- **Home** — greeting, search, category pills, recipe grid **personalized by your onboarding tastes** (matching recipes float to the top; shows as "For you")
+- **Home** — greeting, search, a **recently-viewed** rail, category pills, recipe grid **personalized by your onboarding tastes** (matching recipes float to the top; shows as "For you")
 - **Search** — live filtering, trending searches, **recent searches** (per-user, synced), browse-by-category, filter sheet
 - **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **community reviews** (read everyone's, write/edit/delete your own rating + comment; a star tap is a quick rating, and real reviews blend into the recipe's shown score **everywhere** via a DB trigger), AI tools (**Scale / Substitute / Make easier**), **add to cookbook**, **edit** your own imported recipes, and **share & export** (copy link, native share sheet, print, save as **PDF**)
 - **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to your library, optionally filing it into one of your cookbooks
@@ -265,7 +265,7 @@ on conflict (id) do nothing;
   checks/extras, tastes, cooked history with ratings, your own per-recipe
   ratings, dietary preferences,
   unit system, cookbooks (seeded with starter collections for new accounts),
-  recent searches, app-generated reminders
+  recent searches, recently-viewed recipes, app-generated reminders
   + a last-seen timestamp for the notifications badge, the cached Pro flag +
   monthly AI-usage counter, and the synced **appearance** (accent, dark-mode
   preference) + **language**), RLS-scoped to the owner.

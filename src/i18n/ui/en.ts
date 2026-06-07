@@ -79,6 +79,7 @@ export const en = {
     popularRecipes: 'Popular Recipes',
     categoryRecipes: '{cat} Recipes',
     forYou: 'For you',
+    recentlyViewed: 'Recently viewed',
     trending: 'Trending now',
     categories: 'Categories',
     seeAll: 'See all',

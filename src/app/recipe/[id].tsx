@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Pressable, ScrollView, ActivityIndicator, Share, TextInput } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Print from 'expo-print';
@@ -47,7 +47,7 @@ function AiChip({ t, icon, label, onPress, active }: { t: Tokens; icon: React.Re
 export default function RecipeDetail() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse, ratings, setRecipeRating, addReview, deleteReview, rawById } = useApp();
+  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse, ratings, setRecipeRating, addReview, deleteReview, rawById, logView } = useApp();
   const { session } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -147,6 +147,12 @@ export default function RecipeDetail() {
     listReviews(r.id).then((rs) => { if (active) setReviews(rs); });
     return () => { active = false; };
   }, [r.id]);
+
+  // Remember this recipe in the "recently viewed" rail (ref keeps the effect
+  // keyed on the recipe id, not the per-render logView identity).
+  const logViewRef = useRef(logView);
+  logViewRef.current = logView;
+  useEffect(() => { logViewRef.current(r.id); }, [r.id]);
 
   // The user's own review for this recipe, if they've written one.
   const myReview = reviews?.find((rv) => rv.userId === session?.user?.id) ?? null;

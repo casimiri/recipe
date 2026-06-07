@@ -9,14 +9,14 @@ import { rankByTaste } from '../../utils/taste';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
-import { Avatar, SectionHead } from '../../components/atoms';
+import { Avatar, SectionHead, Dish } from '../../components/atoms';
 import { RecipeCard } from '../../components/RecipeCard';
 import { SearchBar, CategoryRow } from '../../components/Home';
 
 export default function Home() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { recipes, isSaved, toggleSave, unread, profile, diet, tastes, refresh } = useApp();
+  const { recipes, byId, isSaved, toggleSave, unread, profile, diet, tastes, refresh, recentlyViewed } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [cat, setCat] = useState('popular');
@@ -33,6 +33,8 @@ export default function Home() {
   // pair recipes into rows of 2 for the grid
   const rows: typeof shown[] = [];
   for (let i = 0; i < shown.length; i += 2) rows.push(shown.slice(i, i + 2));
+
+  const recent = recentlyViewed.map(byId).filter(Boolean) as NonNullable<ReturnType<typeof byId>>[];
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
@@ -62,6 +64,20 @@ export default function Home() {
       <View style={{ marginBottom: 20 }}>
         <SearchBar t={t} onPress={() => router.push('/search')} onFilter={() => router.push({ pathname: '/search', params: { filter: '1' } })} />
       </View>
+
+      {recent.length > 0 ? (
+        <View style={{ marginBottom: 22 }}>
+          <SectionHead title={tr((s) => s.home.recentlyViewed)} t={t} style={{ marginBottom: 12 }} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -20 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 20 }}>
+            {recent.map((rec) => (
+              <Pressable key={rec.id} onPress={() => router.push(`/recipe/${rec.id}`)} style={{ width: 130 }}>
+                <Dish src={rec.img} alt={rec.title} radius={t.radius} style={{ width: 130, height: 92, marginBottom: 6 }} />
+                <Txt numberOfLines={1} style={{ fontWeight: '700', fontSize: 13, color: t.text }}>{rec.title}</Txt>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
       <View style={{ marginBottom: 22 }}>
         <CategoryRow t={t} active={cat} onPick={setCat} />

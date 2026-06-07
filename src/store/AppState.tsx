@@ -69,6 +69,10 @@ interface AppCtx {
   recentSearches: string[];
   addRecentSearch: (q: string) => void;
   clearRecentSearches: () => void;
+  /** Recipe ids opened recently, most recent first. */
+  recentlyViewed: string[];
+  /** Record that a recipe was opened (moves it to the front of recentlyViewed). */
+  logView: (id: string) => void;
   reminders: AppReminder[];
   addReminder: (r: Omit<AppReminder, 'id' | 'at'>) => void;
   unread: number;
@@ -437,6 +441,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       }));
     },
     clearRecentSearches: () => update({ recentSearches: [] }),
+    recentlyViewed: state.recentlyViewed,
+    logView: (id) =>
+      setState((s) => ({ ...s, recentlyViewed: [id, ...s.recentlyViewed.filter((x) => x !== id)].slice(0, 12) })),
     reminders: state.reminders,
     addReminder: (r) =>
       setState((s) => ({

@@ -46,6 +46,8 @@ export interface UserState {
   cookbooks: UserCookbook[];
   /** Recent search queries, most recent first. */
   recentSearches: string[];
+  /** Recipe ids opened recently, most recent first (deduped, capped). */
+  recentlyViewed: string[];
   /** Recipe ids the user created/imported (the profile "Created" tab), newest first. */
   created: string[];
   /** App-generated notifications (cook-timer reminders etc.), newest first. */
@@ -92,6 +94,7 @@ export const DEFAULT_STATE: UserState = {
   // fresh state, so nobody is retro-fitted with starters they've never seen.
   cookbooks: SEED_COOKBOOKS.map((c) => ({ id: c.id, name: c.name, recipeIds: [...c.cover] })),
   recentSearches: [],
+  recentlyViewed: [],
   created: ['pasta', 'oats'],
   reminders: [],
   notifsSeenAt: 0,
