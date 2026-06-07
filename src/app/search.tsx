@@ -11,6 +11,7 @@ import { Icon } from '../components/Icon';
 import { Dish, SectionHead, Tag, PrimaryButton, Sheet, Scrim } from '../components/atoms';
 import { RecipeCard } from '../components/RecipeCard';
 import { SearchBar } from '../components/Home';
+import { matchesQuery } from '../utils/search';
 import { CATEGORIES, FILTERS } from '../data/seed';
 
 export default function Search() {
@@ -21,22 +22,22 @@ export default function Search() {
   const trending = [...recipes].sort((a, b) => b.saves - a.saves).slice(0, 6);
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ filter?: string; cat?: string }>();
+  const params = useLocalSearchParams<{ filter?: string; cat?: string; q?: string }>();
 
-  const [q, setQ] = useState(params.cat && params.cat !== 'popular' ? String(params.cat) : '');
+  // Seed the query from an explicit `q` (e.g. a recent search tapped on Home),
+  // else from a category deep link, else empty.
+  const [q, setQ] = useState(
+    params.q ? String(params.q) : params.cat && params.cat !== 'popular' ? String(params.cat) : '',
+  );
   const [active, setActive] = useState<string[]>([]);
   const [showFilter, setShowFilter] = useState(params.filter === '1');
 
   const toggle = (f: string) => setActive((a) => (a.includes(f) ? a.filter((x) => x !== f) : [...a, f]));
 
   const results = recipes.filter((r) => {
-    const ql = q.toLowerCase();
-    const matchQ = !q || r.title.toLowerCase().includes(ql) || r.cuisine.toLowerCase().includes(ql)
-      || r.tags.some((tg) => tg.toLowerCase().includes(ql))
-      || r.ingredients.some((i) => i.item.toLowerCase().includes(ql));
     const matchF = active.every((f) => r.tags.includes(f) || r.difficulty === f || r.meal === f);
     const matchDiet = diet.every((d) => r.tags.includes(d));
-    return matchQ && matchF && matchDiet;
+    return matchesQuery(r, q) && matchF && matchDiet;
   });
 
   const empty = !q && active.length === 0;

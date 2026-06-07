@@ -6,10 +6,11 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
 import { trEnum } from '../../i18n/enums';
 import { rankByTaste } from '../../utils/taste';
+import { matchesQuery } from '../../utils/search';
 import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
-import { Avatar, SectionHead, Dish } from '../../components/atoms';
+import { Avatar, SectionHead, Dish, Tag } from '../../components/atoms';
 import { RecipeCard } from '../../components/RecipeCard';
 import { SearchBar, CategoryRow } from '../../components/Home';
 import { DAYS } from '../../data/seed';
@@ -18,15 +19,20 @@ import type { MealSlot } from '../../data/types';
 export default function Home() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { recipes, byId, isSaved, toggleSave, unread, profile, diet, tastes, refresh, recentlyViewed, plan } = useApp();
+  const { recipes, byId, isSaved, toggleSave, unread, profile, diet, tastes, refresh, recentlyViewed, plan, recentSearches, addRecentSearch, clearRecentSearches } = useApp();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [cat, setCat] = useState('popular');
+  const [q, setQ] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = async () => { setRefreshing(true); await refresh(); setRefreshing(false); };
 
   // Dietary preferences apply as a baseline filter across the feed.
   const pool = diet.length ? recipes.filter((r) => diet.every((d) => r.tags.includes(d))) : recipes;
+  // Inline search: when the user types, the feed is replaced by live results.
+  const searching = q.trim().length > 0;
+  const queryResults = searching ? pool.filter((r) => matchesQuery(r, q)) : [];
+  const openResult = (id: string) => { addRecentSearch(q); router.push(`/recipe/${id}`); };
   const list = cat === 'popular' ? pool : pool.filter((r) => r.cuisine === cat || r.meal === cat);
   // Tastes are a soft signal: float matching recipes up without hiding any.
   const shown = rankByTaste(list.length ? list : pool, tastes);
@@ -47,6 +53,7 @@ export default function Home() {
   return (
     <ScrollView style={{ flex: 1, backgroundColor: t.bg }} showsVerticalScrollIndicator={false}
       contentContainerStyle={{ paddingHorizontal: 20, paddingTop: insets.top + 6, paddingBottom: 24 }}
+      keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={t.accent} colors={[t.accent]} />}>
       {/* Header */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -70,8 +77,30 @@ export default function Home() {
       </Txt>
 
       <View style={{ marginBottom: 20 }}>
-        <SearchBar t={t} onPress={() => router.push('/search')} onFilter={() => router.push({ pathname: '/search', params: { filter: '1' } })} />
+        <SearchBar t={t} value={q} onChange={setQ} onSubmit={() => { if (q.trim()) addRecentSearch(q); }}
+          onFilter={() => router.push({ pathname: '/search', params: { filter: '1' } })} />
       </View>
+
+      {searching ? (
+        <View>
+          <Txt style={{ fontSize: 13, color: t.muted, marginBottom: 14, fontWeight: '600' }}>{tr((s) => s.search.resultsCount, { count: queryResults.length })}</Txt>
+          <View style={{ gap: 6 }}>
+            {queryResults.map((r) => (
+              <RecipeCard key={r.id} recipe={r} t={t} variant="compact" onOpen={openResult} onSave={toggleSave} saved={isSaved(r.id)} />
+            ))}
+            {queryResults.length === 0 ? <Txt style={{ textAlign: 'center', color: t.muted, paddingVertical: 40 }}>{tr((s) => s.search.noResults)}</Txt> : null}
+          </View>
+        </View>
+      ) : (
+      <>
+      {recentSearches.length > 0 ? (
+        <View style={{ marginBottom: 22 }}>
+          <SectionHead title={tr((s) => s.search.recent)} action={tr((s) => s.common.clear)} onAction={clearRecentSearches} t={t} style={{ marginBottom: 12 }} />
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 9 }}>
+            {recentSearches.map((rs) => <Tag key={rs} t={t} onPress={() => setQ(rs)}>{rs}</Tag>)}
+          </View>
+        </View>
+      ) : null}
 
       {/* Today's plan */}
       <View style={{ marginBottom: 22 }}>
@@ -141,6 +170,8 @@ export default function Home() {
           </View>
         ))}
       </View>
+      </>
+      )}
     </ScrollView>
   );
 }
