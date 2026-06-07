@@ -411,6 +411,28 @@ export async function uploadAvatar(userId: string, base64: string): Promise<stri
   }
 }
 
+/**
+ * Upload a base64 recipe photo to the public `recipe-images` bucket (under the
+ * user's "<uid>/…" folder, per RLS) and return its public URL, or null if
+ * Supabase isn't configured or the upload fails (callers keep the device-local
+ * URI as a fallback). Timestamped so each save is a fresh, CDN-cacheable object.
+ */
+export async function uploadRecipeImage(userId: string, base64: string): Promise<string | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const clean = base64.includes(',') ? base64.split(',')[1] : base64;
+    const bytes = Uint8Array.from(atob(clean), (c) => c.charCodeAt(0));
+    const path = `${userId}/recipe-${Date.now()}.jpg`;
+    const { error } = await supabase.storage
+      .from('recipe-images')
+      .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
+    if (error) return null;
+    return supabase.storage.from('recipe-images').getPublicUrl(path).data.publicUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Billing ────────────────────────────────────────────────
 export interface BillingConfig {
   priceCents: number;

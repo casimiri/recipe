@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Pressable } from 'react-native';
+import { View, Pressable, Alert } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n';
@@ -29,7 +30,7 @@ const TEMPLATE: Record<AppReminder['kind'], (s: UIStrings) => string> = {
 export default function Notifications() {
   const { t } = useTheme();
   const { tr } = useI18n();
-  const { byId, reminders, unread, markNotificationsRead } = useApp();
+  const { byId, reminders, unread, markNotificationsRead, dismissReminder, clearReminders } = useApp();
   const router = useRouter();
 
   // Reminders are newest-first and `unread` counts the newest ones, so the
@@ -38,9 +39,20 @@ export default function Notifications() {
   const unreadAtMount = useRef(unread).current;
   useEffect(() => () => markNotificationsRead(), []);
 
+  const confirmClearAll = () =>
+    Alert.alert(tr((s) => s.notifications.clearAll), tr((s) => s.notifications.clearAllBody), [
+      { text: tr((s) => s.common.cancel), style: 'cancel' },
+      { text: tr((s) => s.notifications.clearAll), style: 'destructive', onPress: clearReminders },
+    ]);
+
   return (
     <Screen>
-      <ScreenHeader title={tr((s) => s.notifications.title)} onBack={() => router.back()} />
+      <ScreenHeader title={tr((s) => s.notifications.title)} onBack={() => router.back()}
+        right={reminders.length > 0 ? (
+          <Pressable onPress={confirmClearAll} hitSlop={8} style={{ paddingHorizontal: 6, paddingVertical: 4 }}>
+            <Txt style={{ fontSize: 14, fontWeight: '700', color: t.accent }}>{tr((s) => s.notifications.clearAll)}</Txt>
+          </Pressable>
+        ) : undefined} />
       {reminders.length === 0 ? (
         <Txt style={{ textAlign: 'center', color: t.muted, paddingVertical: 50 }}>{tr((s) => s.notifications.empty)}</Txt>
       ) : null}
@@ -52,16 +64,25 @@ export default function Notifications() {
           const text = n.text ?? tr(TEMPLATE[n.kind], { title: r?.title ?? '' });
           const isNew = i < unreadAtMount;
           return (
-            <Pressable key={n.id} onPress={() => r && router.push(`/recipe/${r.id}`)} style={{ flexDirection: 'row', gap: 13, alignItems: 'center', paddingVertical: 13, paddingHorizontal: 10, borderRadius: t.radiusSm + 4, backgroundColor: isNew ? t.accentSoft : 'transparent' }}>
-              <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
-                <I size={20} sw={2} color={t.accent} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Txt style={{ fontSize: 14.5, color: t.text, lineHeight: 20 }}>{text}</Txt>
-                <Txt style={{ fontSize: 12, color: t.faint, marginTop: 2 }}>{timeAgo(n.at) === 'now' ? tr((s) => s.common.justNow) : tr((s) => s.common.ago, { time: timeAgo(n.at) })}</Txt>
-              </View>
-              {r ? <Dish src={r.img} alt="" radius={10} style={{ width: 44, height: 44 }} /> : null}
-            </Pressable>
+            <Swipeable key={n.id} overshootRight={false}
+              onSwipeableOpen={(dir) => { if (dir === 'right') dismissReminder(n.id); }}
+              renderRightActions={() => (
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8, paddingHorizontal: 22, backgroundColor: t.danger }}>
+                  <Icon.trash size={18} sw={2} color="#fff" />
+                  <Txt style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{tr((s) => s.notifications.dismiss)}</Txt>
+                </View>
+              )}>
+              <Pressable onPress={() => r && router.push(`/recipe/${r.id}`)} style={{ flexDirection: 'row', gap: 13, alignItems: 'center', paddingVertical: 13, paddingHorizontal: 10, borderRadius: t.radiusSm + 4, backgroundColor: isNew ? t.accentSoft : t.bg }}>
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: t.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+                  <I size={20} sw={2} color={t.accent} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Txt style={{ fontSize: 14.5, color: t.text, lineHeight: 20 }}>{text}</Txt>
+                  <Txt style={{ fontSize: 12, color: t.faint, marginTop: 2 }}>{timeAgo(n.at) === 'now' ? tr((s) => s.common.justNow) : tr((s) => s.common.ago, { time: timeAgo(n.at) })}</Txt>
+                </View>
+                {r ? <Dish src={r.img} alt="" radius={10} style={{ width: 44, height: 44 }} /> : null}
+              </Pressable>
+            </Swipeable>
           );
         })}
       </View>

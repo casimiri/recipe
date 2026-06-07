@@ -11,13 +11,13 @@ planning, shopping for, and cooking recipes.
 - **Onboarding** — welcome + 3 value slides + taste preferences
 - **Home** — greeting, search, a **"Today" card** with today's planned breakfast/lunch/dinner from your meal plan (tap straight to the recipe), a **recently-viewed** rail, category pills, recipe grid **personalized by your onboarding tastes** (matching recipes float to the top; shows as "For you")
 - **Search** — live filtering (matches recipe titles, cuisines, tags, **and ingredients**), trending searches, **recent searches** (per-user, synced), browse-by-category, filter sheet
-- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **per-ingredient food icons** + a **View image** button (an AI-generated photo of the ingredient, generated once then cached), **community reviews** (read everyone's, write/edit/delete your own rating + comment; a star tap is a quick rating, and real reviews blend into the recipe's shown score **everywhere** via a DB trigger), AI tools (**Scale / Substitute / Make easier**), **add ingredients to the grocery list**, **add to cookbook**, **edit** your own imported recipes, and **share & export** (copy link, native share sheet, print, save as **PDF**)
+- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **per-ingredient food icons** + a **View image** button (an AI-generated photo of the ingredient, generated once then cached), **community reviews** (read everyone's, write/edit/delete your own rating + comment; a star tap is a quick rating, and real reviews blend into the recipe's shown score **everywhere** via a DB trigger), AI tools (**Scale / Substitute / Make easier**), **add ingredients to the grocery list**, **add to cookbook**, **edit** your own imported recipes (incl. **replacing the photo**), and **share & export** (copy link, native share sheet, print, save as **PDF**)
 - **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website, **snap a photo with the camera**, or write your own → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to your library, optionally filing it into one of your cookbooks
 - **Cook mode** — full-screen step-by-step with step **timers** (fire a local **notification** when they finish, so they alert you even if the app is backgrounded), an optional **AI illustration per step** (tap **Illustrate this step** to generate a photo of what that step should look like — generated once then cached and shared across users), and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
 - **Meal planner** — weekly calendar with breakfast / lunch / dinner slots, plus an optional **meal reminders** toggle that schedules weekly local notifications ("Time to cook X") for planned meals
 - **Smart grocery list** — **auto-generated from your meal plan**: the planned recipes' ingredients are aggregated (duplicates merged across recipes, quantities summed — and **scaled up when a recipe is planned for several days** — shown in your unit system) and grouped by aisle or recipe, each with a **food icon** + **View image** (the same AI ingredient photo as the recipe screen), with progress, **add/remove your own items** (with an optional quantity), **pantry staples** (long-press, tap the −, or swipe a planned item to mark "always have" and hide it; swipe your own items to remove), and **share/export the list** (native share sheet)
 - **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes; **taste preferences** (set at onboarding) are also editable in Settings and float matching recipes to the top of the home feed
-- **Cookbooks** — browse, **create and delete your own**, and add/remove recipes (new accounts start with a few **starter cookbooks** built from the catalog); plus **Profile** (created / saved / cooked / reviewed tabs, with **star ratings + re-rate** on cooked recipes, and live **recipes / cookbooks / cooked** counts), **Notifications** (a real **activity feed** — your cooks, saves, meal-plan adds, imports and reviews, plus cook-timer reminders — with an unread badge), **Settings**
+- **Cookbooks** — browse, **create and delete your own**, and add/remove recipes (new accounts start with a few **starter cookbooks** built from the catalog); plus **Profile** (created / saved / cooked / reviewed tabs, with **star ratings + re-rate** on cooked recipes, and live **recipes / cookbooks / cooked** counts), **Notifications** (a real **activity feed** — your cooks, saves, meal-plan adds, imports and reviews, plus cook-timer reminders — with an unread badge, **swipe-to-dismiss** and **clear all**), **Settings**
 - **Languages** — **English, French, Spanish, German**; defaults to the device language and switchable in Settings. Translates the whole UI, the seed recipe catalog (titles/descriptions/ingredients/steps), and **AI output** — imported recipes and the Substitute / Make-easier tools come back in the active language (enum-ish fields stay English so filtering keeps working)
 - **Units** — switch ingredient quantities between **metric and imperial** in Settings; conversion flows through recipe detail, cook mode, the grocery list, and exports
 - **Export** — save your created + saved recipes as a single PDF from Settings
@@ -58,7 +58,7 @@ src/
   i18n/                I18nProvider + tr() selector, ui/{en,fr,es,de} dictionaries, enums + recipe content localization
   utils/               formatting helpers (incl. metric↔imperial unit conversion) + grocery-list builder + ingredient→emoji map
 supabase/
-  migrations/                0001 schema · 0002 avatars · 0003 billing · 0004 reviews · 0005 review-rating trigger · 0006 ingredient-images bucket · 0007 step-images bucket
+  migrations/                0001 schema · 0002 avatars · 0003 billing · 0004 reviews · 0005 review-rating trigger · 0006 ingredient-images bucket · 0007 step-images bucket · 0008 recipe-image upload RLS
   seed.sql                   shared recipe catalog (generated)
   functions/import-recipe/   OpenAI recipe extraction (AI-quota gated)
   functions/ai-tools/        OpenAI substitutions + step simplification (AI-quota gated)
@@ -288,8 +288,10 @@ on conflict (id) do nothing;
 - **`subscriptions`** — authoritative per-user Pro state (`pro`, `renews_at`) +
   AI usage (`ai_period`, `ai_count`); users read their own row, only the edge
   functions (service role) write it.
-- **Storage `recipe-images`** — public bucket holding photos captured during
-  import; the uploaded photo becomes the imported recipe's hero image.
+- **Storage `recipe-images`** — public bucket holding recipe hero photos: the
+  `import-recipe` function uploads captured/import photos (service role), and
+  signed-in users upload their own under a `<uid>/…` folder when editing a
+  recipe (RLS write-scoped to the owner, public read; migration `0008`).
 - **Storage `ingredient-images`** — public bucket of AI-generated ingredient
   photos, keyed by ingredient slug (e.g. `garlic.png`), written by the
   `ingredient-image` function and shared across users.

@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { View, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme/ThemeProvider';
 import { useI18n } from '../i18n';
 import { useApp } from '../store/AppState';
+import { useAuth } from '../store/auth';
+import { uploadRecipeImage } from '../lib/repo';
 import { Txt } from '../components/Txt';
 import { Icon } from '../components/Icon';
-import { IconBtn, PrimaryButton } from '../components/atoms';
+import { Dish, IconBtn, PrimaryButton } from '../components/atoms';
 import type { Tokens } from '../theme/tokens';
 import type { Ingredient, Step } from '../data/types';
 
@@ -18,11 +21,14 @@ export default function EditRecipe() {
   const { t } = useTheme();
   const { tr } = useI18n();
   const { byId, updateRecipe } = useApp();
+  const { user } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const r = byId(String(id));
 
+  const [img, setImg] = useState(r?.img ?? '');
+  const [imgBusy, setImgBusy] = useState(false);
   const [title, setTitle] = useState(r?.title ?? '');
   const [desc, setDesc] = useState(r?.desc ?? '');
   const [time, setTime] = useState(String(r?.time ?? ''));
@@ -48,6 +54,24 @@ export default function EditRecipe() {
   const addIng = () => setIngs((xs) => [...xs, { qty: '', unit: '', item: '', g: xs[0]?.g ?? '' }]);
   const addStep = () => setSteps((xs) => [...xs, { t: '', d: '' }]);
 
+  // Pick a photo from the library and upload it to the recipe-images bucket.
+  // Guests (or a failed upload) keep the device-local URI as a fallback.
+  const pickPhoto = async () => {
+    setImgBusy(true);
+    try {
+      const res = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.6 });
+      const asset = res.canceled ? null : res.assets[0];
+      if (asset) {
+        const uploaded = asset.base64 && user?.id ? await uploadRecipeImage(user.id, asset.base64) : null;
+        setImg(uploaded ?? asset.uri);
+      }
+    } catch {
+      // permission denied or picker error → keep the current image
+    } finally {
+      setImgBusy(false);
+    }
+  };
+
   const save = async () => {
     setBusy(true);
     const ingredients: Ingredient[] = ings
@@ -57,6 +81,7 @@ export default function EditRecipe() {
       .filter((s) => s.t.trim() || s.d.trim())
       .map((s) => ({ t: s.t.trim(), d: s.d.trim(), ...(s.timer ? { timer: s.timer } : {}) }));
     await updateRecipe(r.id, {
+      img: img || r.img,
       title: title.trim() || r.title,
       desc: desc.trim(),
       time: parseInt(time, 10) || r.time,
@@ -77,6 +102,14 @@ export default function EditRecipe() {
 
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 40 }}>
+        <Pressable onPress={pickPhoto} disabled={imgBusy} style={{ marginTop: 4 }}>
+          <Dish src={img} alt={title} radius={t.radius} style={{ width: '100%', height: 180 }} />
+          <View style={{ position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.55)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 999 }}>
+            <Icon.camera size={15} sw={2} color="#fff" />
+            <Txt style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{imgBusy ? tr((s) => s.auth.pleaseWait) : tr((s) => s.editRecipe.changePhoto)}</Txt>
+          </View>
+        </Pressable>
+
         <Label t={t}>{tr((s) => s.editRecipe.titleField)}</Label>
         <Field t={t} value={title} onChange={setTitle} />
 

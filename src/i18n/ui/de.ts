@@ -294,6 +294,7 @@ export const de: UIStrings = {
     stepDetail: 'Was zu tun ist',
     addIngredient: 'Zutat hinzufügen',
     addStep: 'Schritt hinzufügen',
+    changePhoto: 'Foto ändern',
     save: 'Änderungen speichern',
   },
   notifications: {
@@ -305,6 +306,9 @@ export const de: UIStrings = {
     youImported: 'Du hast {title} importiert',
     youReviewed: 'Du hast {title} bewertet',
     timerFinished: 'Timer beendet beim Kochen von {title}',
+    clearAll: 'Alle löschen',
+    clearAllBody: 'Alle Benachrichtigungen löschen?',
+    dismiss: 'Verwerfen',
   },
   settings: {
     title: 'Einstellungen',

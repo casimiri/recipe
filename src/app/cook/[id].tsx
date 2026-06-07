@@ -12,6 +12,7 @@ import { Icon } from '../../components/Icon';
 import { Dish, IconBtn, PrimaryButton, Sheet } from '../../components/atoms';
 import { Paywall } from '../../components/Paywall';
 import { StepImage } from '../../components/StepImage';
+import { IngredientIcon } from '../../components/IngredientImage';
 import { fmtQty, mmss, convertUnit } from '../../utils/format';
 import { scheduleTimerDone, cancelNotif } from '../../lib/notify';
 import type { Tokens } from '../../theme/tokens';
@@ -156,7 +157,8 @@ export default function CookMode() {
         {r.ingredients.map((ing, k) => {
           const c = convertUnit(ing.qty, ing.unit, units);
           return (
-            <View key={k} style={{ flexDirection: 'row', gap: 10, paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: t.border }}>
+            <View key={k} style={{ flexDirection: 'row', gap: 10, alignItems: 'center', paddingVertical: 9, borderBottomWidth: 1, borderBottomColor: t.border }}>
+              <IngredientIcon item={ing.item} t={t} size={24} />
               <Txt style={{ color: t.accent, fontWeight: '700', minWidth: 70, fontSize: 14.5 }}>{fmtQty(c.qty)} {c.unit}</Txt>
               <Txt style={{ fontSize: 14.5, color: t.text, flex: 1 }}>{ing.item}</Txt>
             </View>

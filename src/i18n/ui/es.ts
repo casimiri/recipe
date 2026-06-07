@@ -294,6 +294,7 @@ export const es: UIStrings = {
     stepDetail: 'Qué hacer',
     addIngredient: 'Añadir ingrediente',
     addStep: 'Añadir paso',
+    changePhoto: 'Cambiar foto',
     save: 'Guardar cambios',
   },
   notifications: {
@@ -305,6 +306,9 @@ export const es: UIStrings = {
     youImported: 'Importaste {title}',
     youReviewed: 'Reseñaste {title}',
     timerFinished: 'Temporizador terminado mientras cocinabas {title}',
+    clearAll: 'Borrar todo',
+    clearAllBody: '¿Borrar todas las notificaciones?',
+    dismiss: 'Descartar',
   },
   settings: {
     title: 'Ajustes',

@@ -83,6 +83,10 @@ interface AppCtx {
   logView: (id: string) => void;
   reminders: AppReminder[];
   addReminder: (r: Omit<AppReminder, 'id' | 'at'>) => void;
+  /** Dismiss a single notification. */
+  dismissReminder: (id: string) => void;
+  /** Clear the whole activity feed. */
+  clearReminders: () => void;
   unread: number;
   markNotificationsRead: () => void;
   profile: Profile;
@@ -486,6 +490,9 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
         ...s,
         reminders: [{ ...r, id: 'rem' + Date.now(), at: Date.now() }, ...s.reminders].slice(0, 50),
       })),
+    dismissReminder: (id) =>
+      setState((s) => ({ ...s, reminders: s.reminders.filter((n) => n.id !== id) })),
+    clearReminders: () => update({ reminders: [], notifsSeenAt: Date.now() }),
     unread,
     markNotificationsRead: () => update({ notifsSeenAt: Date.now() }),
     profile,

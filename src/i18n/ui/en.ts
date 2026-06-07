@@ -295,6 +295,7 @@ export const en = {
     stepDetail: 'What to do',
     addIngredient: 'Add ingredient',
     addStep: 'Add step',
+    changePhoto: 'Change photo',
     save: 'Save changes',
   },
   notifications: {
@@ -306,6 +307,9 @@ export const en = {
     youImported: 'You imported {title}',
     youReviewed: 'You reviewed {title}',
     timerFinished: 'Step timer finished while cooking {title}',
+    clearAll: 'Clear all',
+    clearAllBody: 'Clear all notifications?',
+    dismiss: 'Dismiss',
   },
   settings: {
     title: 'Settings',
