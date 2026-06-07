@@ -190,7 +190,7 @@ export default function RecipeDetail() {
 
   return (
     <View style={{ flex: 1, backgroundColor: t.surface }}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 130 }}>
         {/* Hero */}
         <View>
           <Dish src={r.img} alt={r.title} style={{ width: '100%', height: 300 }} />
@@ -414,7 +414,7 @@ export default function RecipeDetail() {
       <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingBottom: insets.bottom + 14, paddingTop: 24 }}>
         <Scrim colors={['transparent', t.surface]} />
         <View style={{ flexDirection: 'row', gap: 12 }}>
-          <PrimaryButton t={t} ghost full icon={<Icon.cart size={18} sw={2} color={t.text} />} style={{ paddingVertical: 17, backgroundColor: t.accentSoft, borderWidth: 0 }}
+          <PrimaryButton t={t} ghost full icon={<Icon.cart size={18} sw={2} color={t.text} />} style={{ paddingVertical: 17, backgroundColor: t.dark ? t.surface2 : '#E8E8E2', borderWidth: 0 }}
             onPress={() => {
               const n = addGroceryItems(
                 r.ingredients.map((ing) => {
