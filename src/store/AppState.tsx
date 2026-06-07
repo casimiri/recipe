@@ -23,6 +23,8 @@ interface AppCtx {
   refresh: () => Promise<void>;
   recipes: Recipe[];
   byId: (id: string) => Recipe | undefined;
+  /** The catalog-baseline recipe (localized, but without the per-user rating blend). */
+  rawById: (id: string) => Recipe | undefined;
   saved: string[];
   toggleSave: (id: string) => void;
   isSaved: (id: string) => boolean;
@@ -41,7 +43,7 @@ interface AppCtx {
   setGroceryChecked: (ids: string[]) => void;
   toggleGrocery: (id: string) => void;
   groceryExtra: GroceryItem[];
-  addGroceryItem: (name: string) => void;
+  addGroceryItem: (name: string, qty?: string) => void;
   removeGroceryItem: (id: string) => void;
   tastes: string[];
   setTastes: (t: string[]) => void;
@@ -260,6 +262,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     },
     recipes: ratedRecipes,
     byId: (id) => ratedRecipes.find((r) => r.id === id),
+    rawById: (id) => localizedRecipes.find((r) => r.id === id),
     saved: state.saved,
     isSaved: (id) => state.saved.includes(id),
     toggleSave: (id) =>
@@ -332,10 +335,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
           : [...s.groceryChecked, id],
       })),
     groceryExtra: state.groceryExtra,
-    addGroceryItem: (name) =>
+    addGroceryItem: (name, qty) =>
       setState((s) => ({
         ...s,
-        groceryExtra: [...s.groceryExtra, { id: 'x' + Date.now(), name: name.trim(), qty: '1', from: 'Added by you' }],
+        groceryExtra: [...s.groceryExtra, { id: 'x' + Date.now(), name: name.trim(), qty: qty?.trim() || '1', from: 'Added by you' }],
       })),
     removeGroceryItem: (id) =>
       setState((s) => ({

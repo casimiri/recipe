@@ -252,6 +252,18 @@ export async function addReview(
   return !error;
 }
 
+/** Recipe ids the user has reviewed, newest first (for their profile). */
+export async function listMyReviews(userId: string): Promise<string[]> {
+  if (!isSupabaseConfigured || !supabase) return [];
+  const { data, error } = await supabase
+    .from('recipe_reviews')
+    .select('recipe_id, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+  if (error || !data) return [];
+  return data.map((row: any) => row.recipe_id as string);
+}
+
 /** Delete the signed-in user's review for a recipe (RLS scopes to the author). */
 export async function deleteReview(recipeId: string, userId: string): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;

@@ -47,7 +47,7 @@ function AiChip({ t, icon, label, onPress, active }: { t: Tokens; icon: React.Re
 export default function RecipeDetail() {
   const { t } = useTheme();
   const { tr, lang } = useI18n();
-  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse, ratings, setRecipeRating, addReview, deleteReview } = useApp();
+  const { byId, recipes, isSaved, toggleSave, addToPlan, units, cookbooks, addToCookbook, createCookbook, canUseAi, recordAiUse, ratings, setRecipeRating, addReview, deleteReview, rawById } = useApp();
   const { session } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -99,6 +99,16 @@ export default function RecipeDetail() {
 
   const scale = servings / r.servings;
   const saved = isSaved(r.id);
+
+  // Blend real community reviews with the catalog baseline (used as a prior, so
+  // a couple of reviews nudge a well-established score rather than replace it).
+  // Falls back to r.rating (which already includes your own star rating) when
+  // there are no community reviews yet.
+  const base = rawById(r.id) ?? r;
+  const reviewCount = reviews?.length ?? 0;
+  const shownRating = reviewCount
+    ? Math.round(((base.rating * base.reviews + reviews!.reduce((s, rv) => s + rv.rating, 0)) / (base.reviews + reviewCount)) * 10) / 10
+    : r.rating;
   const groups = [...new Set(r.ingredients.map((i) => i.g))];
   const macros = MACROS(r.nutrition);
   const macroTotal = macros.reduce((s, m) => s + m.v, 0);
@@ -193,7 +203,7 @@ export default function RecipeDetail() {
 
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
             <Txt style={{ flex: 1, fontWeight: '800', fontSize: 25, lineHeight: 30, color: t.text }}>{r.title}</Txt>
-            <RatingBadge value={r.rating} t={t} style={{ marginTop: 4, paddingHorizontal: 11, paddingVertical: 7 }} />
+            <RatingBadge value={shownRating} t={t} style={{ marginTop: 4, paddingHorizontal: 11, paddingVertical: 7 }} />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8, marginBottom: 18 }}>
             <Txt style={{ fontSize: 13.5, color: t.muted, fontWeight: '600' }}>{trEnum(r.cuisine, lang)}</Txt>

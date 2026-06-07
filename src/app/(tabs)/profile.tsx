@@ -1,31 +1,42 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Pressable, ScrollView, Share, Alert, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useI18n } from '../../i18n';
 import { useApp } from '../../store/AppState';
+import { useAuth } from '../../store/auth';
+import { listMyReviews } from '../../lib/repo';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
 import { Avatar, PrimaryButton, Dish } from '../../components/atoms';
 import { RecipeCard } from '../../components/RecipeCard';
 import { compact } from '../../utils/format';
 
-type Tab = 'created' | 'saved' | 'cooked';
+type Tab = 'created' | 'saved' | 'cooked' | 'reviewed';
 
 export default function Profile() {
   const { t } = useTheme();
   const { tr } = useI18n();
   const { saved, byId, isSaved, profile, cooked, rateCook, deleteCreatedRecipe, refresh } = useApp();
+  const { session } = useAuth();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<Tab>('created');
+  const [reviewedIds, setReviewedIds] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const onRefresh = async () => { setRefreshing(true); await refresh(); setRefreshing(false); };
+
+  const loadReviewed = () => {
+    if (session?.user?.id) listMyReviews(session.user.id).then(setReviewedIds);
+    else setReviewedIds([]);
+  };
+  useEffect(loadReviewed, [session?.user?.id]);
+  const onRefresh = async () => { setRefreshing(true); await refresh(); loadReviewed(); setRefreshing(false); };
   const p = profile;
 
-  // created/saved render as a grid; cooked renders its own list (rating + date).
-  const gridData = (tab === 'saved' ? saved.map(byId) : p.created.map(byId)).filter(Boolean) as NonNullable<ReturnType<typeof byId>>[];
+  // created/saved/reviewed render as a grid; cooked renders its own list (rating + date).
+  const gridIds = tab === 'saved' ? saved : tab === 'reviewed' ? reviewedIds : p.created;
+  const gridData = gridIds.map(byId).filter(Boolean) as NonNullable<ReturnType<typeof byId>>[];
   const rows: typeof gridData[] = [];
   for (let i = 0; i < gridData.length; i += 2) rows.push(gridData.slice(i, i + 2));
   const cookedEntries = cooked.map((c) => ({ c, r: byId(c.id) })).filter((x) => x.r);
@@ -79,7 +90,7 @@ export default function Profile() {
       </View>
 
       <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: t.border, marginBottom: 18 }}>
-        {(['created', 'saved', 'cooked'] as const).map((k) => (
+        {(['created', 'saved', 'cooked', 'reviewed'] as const).map((k) => (
           <Pressable key={k} onPress={() => setTab(k)} style={{ flex: 1, paddingVertical: 12, alignItems: 'center' }}>
             <Txt style={{ fontSize: 14, fontWeight: '700', color: tab === k ? t.text : t.muted }}>{tr((s) => s.profile[k])}</Txt>
             {tab === k ? <View style={{ position: 'absolute', bottom: -1, left: '25%', right: '25%', height: 3, borderRadius: 3, backgroundColor: t.accent }} /> : null}

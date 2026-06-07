@@ -19,6 +19,8 @@ export default function Grocery() {
   const insets = useSafeAreaInsets();
   const [groupBy, setGroupBy] = useState<'aisle' | 'recipe'>('aisle');
   const [adding, setAdding] = useState('');
+  const [addingQty, setAddingQty] = useState('');
+  const submitAdd = () => { if (adding.trim()) { addGroceryItem(adding, addingQty); setAdding(''); setAddingQty(''); } };
 
   const allItems = [...groceryAisles.flatMap((g) => g.items), ...groceryExtra];
   const total = allItems.length;
@@ -92,8 +94,11 @@ export default function Grocery() {
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 24 }}>
         <View style={{ width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: t.borderStrong, borderStyle: 'dashed' }} />
+        <TextInput value={addingQty} onChangeText={setAddingQty} placeholder={tr((s) => s.grocery.qtyPlaceholder)} placeholderTextColor={t.faint}
+          onSubmitEditing={submitAdd} returnKeyType="next"
+          style={{ width: 48, fontSize: 15, color: t.text, fontFamily: t.body, paddingVertical: 6, textAlign: 'center' }} />
         <TextInput value={adding} onChangeText={setAdding} placeholder={tr((s) => s.grocery.addPlaceholder)} placeholderTextColor={t.faint}
-          onSubmitEditing={() => { if (adding.trim()) { addGroceryItem(adding); setAdding(''); } }}
+          onSubmitEditing={submitAdd}
           style={{ flex: 1, fontSize: 15, color: t.text, fontFamily: t.body, paddingVertical: 6 }} />
       </View>
 
