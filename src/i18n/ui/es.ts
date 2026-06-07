@@ -196,6 +196,9 @@ export const es: UIStrings = {
     stepTimer: 'Temporizador',
     timerDone: '¡Listo!',
     ingredients: 'Ingredientes',
+    illustrateStep: 'Ilustrar este paso',
+    generatingStep: 'Ilustrando el paso…',
+    stepImageFailed: 'No se pudo ilustrar este paso. Inténtalo más tarde.',
   },
   cookDone: {
     title: '¡Bien hecho!',

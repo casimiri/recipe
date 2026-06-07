@@ -197,6 +197,9 @@ export const en = {
     stepTimer: 'Step timer',
     timerDone: 'Done!',
     ingredients: 'Ingredients',
+    illustrateStep: 'Illustrate this step',
+    generatingStep: 'Illustrating step…',
+    stepImageFailed: 'Couldn’t illustrate this step. Try again later.',
   },
   cookDone: {
     title: 'Nicely done!',

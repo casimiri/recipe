@@ -10,6 +10,8 @@ import { useApp } from '../../store/AppState';
 import { Txt } from '../../components/Txt';
 import { Icon } from '../../components/Icon';
 import { Dish, IconBtn, PrimaryButton, Sheet } from '../../components/atoms';
+import { Paywall } from '../../components/Paywall';
+import { StepImage } from '../../components/StepImage';
 import { fmtQty, mmss, convertUnit } from '../../utils/format';
 import { scheduleTimerDone, cancelNotif } from '../../lib/notify';
 import type { Tokens } from '../../theme/tokens';
@@ -101,6 +103,7 @@ export default function CookMode() {
 
   const [i, setI] = useState(0);
   const [peek, setPeek] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
   const step = r.steps[i];
   const last = i === r.steps.length - 1;
 
@@ -125,6 +128,7 @@ export default function CookMode() {
         <Txt style={{ fontSize: 13, fontWeight: '700', color: t.accent, marginBottom: 8, letterSpacing: 1 }}>{tr((s) => s.cook.stepOf, { current: i + 1, total: r.steps.length })}</Txt>
         <Txt style={{ fontWeight: '800', fontSize: 26, lineHeight: 31, color: t.text, marginBottom: 14 }}>{step.t}</Txt>
         <Txt style={{ fontSize: 17, lineHeight: 27, color: t.text, marginBottom: 22 }}>{step.d}</Txt>
+        <StepImage key={i} recipe={r} index={i} step={step} t={t} onPaywall={() => setPayOpen(true)} />
         {step.timer ? (
           <CookTimer
             seconds={step.timer}
@@ -159,6 +163,8 @@ export default function CookMode() {
           );
         })}
       </Sheet>
+
+      <Paywall open={payOpen} onClose={() => setPayOpen(false)} reachedLimit />
     </View>
   );
 }

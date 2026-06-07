@@ -118,3 +118,42 @@ export async function ingredientImage(item: string): Promise<{ url?: string; gen
   }
   return {};
 }
+
+/** Stable 32-bit djb2 hash (base36) — must match the step-image edge function. */
+function hash36(s: string): string {
+  let h = 5381;
+  for (let k = 0; k < s.length; k++) h = ((h << 5) + h + s.charCodeAt(k)) >>> 0;
+  return h.toString(36);
+}
+
+/**
+ * Deterministic public URL for a recipe step's cached illustration (or null
+ * offline). Keyed by recipe + step index + a hash of the step text, so editing
+ * a step regenerates rather than serving the stale picture. Must match the
+ * step-image edge function's path.
+ */
+export function stepImageUrl(recipeId: string, index: number, step: { t: string; d: string }): string | null {
+  const slug = ingredientSlug(recipeId);
+  if (!SUPA_URL || !slug) return null;
+  const h = hash36(`${step.t}|${step.d}`);
+  return `${SUPA_URL}/storage/v1/object/public/step-images/${slug}/${index}-${h}.png`;
+}
+
+/**
+ * Fetch (or generate, then cache) an AI illustration of a recipe step via the
+ * step-image function. Generation counts against the AI quota server-side;
+ * cached hits are free. Returns {} when unavailable (offline / no credentials).
+ */
+export async function stepImage(args: {
+  recipeId: string; index: number; title: string; desc: string; recipeTitle: string;
+}): Promise<{ url?: string; generated?: boolean; quotaExceeded?: boolean }> {
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { data, error } = await supabase.functions.invoke('step-image', { body: args });
+      if (!error && data) return data;
+    } catch {
+      // fall through
+    }
+  }
+  return {};
+}
