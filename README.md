@@ -11,10 +11,10 @@ planning, shopping for, and cooking recipes.
 - **Onboarding** — welcome + 3 value slides + taste preferences
 - **Home** — greeting, **inline search-as-you-type** (live results in place, with your **recent searches** as tappable chips), a **"Today" card** with today's planned breakfast/lunch/dinner from your meal plan (tap straight to the recipe), a **recently-viewed** rail, category pills, recipe grid **personalized by your onboarding tastes** (matching recipes float to the top; shows as "For you")
 - **Search** — live filtering (matches recipe titles, cuisines, tags, **and ingredients**), trending searches, **recent searches** (per-user, synced), browse-by-category, filter sheet
-- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **per-ingredient food icons** + a **View image** button (an AI-generated photo of the ingredient, generated once then cached), **community reviews** (read everyone's, write/edit/delete your own rating + comment; a star tap is a quick rating, and real reviews blend into the recipe's shown score **everywhere** via a DB trigger), AI tools (**Scale / Substitute / Make easier**), **add ingredients to the grocery list**, **add to cookbook**, **edit** your own imported recipes (incl. **replacing the photo**), and **share & export** (copy link, native share sheet, print, save as **PDF**)
-- **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website or **snap a photo with the camera** → AI extraction (vision for photos, which also become the recipe’s image) → editable preview → save to your library, optionally filing it into one of your cookbooks; or **write your own** — a **free, no-AI** blank-entry flow (title up front, fill in the rest on the edit screen)
-- **Cook mode** — full-screen step-by-step with step **timers** (fire a local **notification** when they finish, so they alert you even if the app is backgrounded), an optional **AI illustration per step** (tap **Illustrate this step** to generate a photo of what that step should look like — generated once then cached and shared across users), and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
-- **Meal planner** — weekly calendar with breakfast / lunch / dinner slots, plus an optional **meal reminders** toggle that schedules weekly local notifications ("Time to cook X") for planned meals
+- **Recipe detail** — stat circles, serving **scaling**, numbered steps, nutrition macros, **per-ingredient food icons** + a **View image** button (an AI-generated photo of the ingredient, generated once then cached), **community reviews** (read everyone's — **your own pinned on top**, newest first, each with a **relative timestamp**, capped at 3 with a **"Show all"** toggle; write/edit/delete your own rating + comment; a star tap is a quick rating, and real reviews blend into the recipe's shown score **everywhere** via a DB trigger), AI tools (**Scale / Substitute / Make easier**), **add ingredients to the grocery list**, **add to cookbook**, **edit** your own imported recipes (incl. **replacing the photo**), and **share & export** (copy link, native share sheet, print, save as **PDF**)
+- **Import (hero flow)** — paste from Instagram / TikTok / YouTube / website or **snap a photo with the camera** → AI extraction (vision for photos, which also become the recipe’s image; **YouTube** links resolve the real video **title, channel & thumbnail** via oEmbed and anchor extraction on the actual video, crediting the channel) → editable preview → save to your library, optionally filing it into one of your cookbooks; or **write your own** — a **free, no-AI** blank-entry flow (title up front, fill in the rest on the edit screen)
+- **Cook mode** — full-screen step-by-step with step **timers** (fire a local **notification** when they finish, so they alert you even if the app is backgrounded — **tap it to jump back to the recipe**), an optional **AI illustration per step** (tap **Illustrate this step** to generate a photo of what that step should look like — generated once then cached and shared across users), and screen-keep-awake; finishing a cook records it to your **cooked history with a star rating**
+- **Meal planner** — weekly calendar with breakfast / lunch / dinner slots, plus an optional **meal reminders** toggle that schedules weekly local notifications ("Time to cook X") for planned meals (tap one to open the recipe)
 - **Smart grocery list** — **auto-generated from your meal plan**: the planned recipes' ingredients are aggregated (duplicates merged across recipes, quantities summed — and **scaled up when a recipe is planned for several days** — shown in your unit system) and grouped by aisle or recipe, each with a **food icon** + **View image** (the same AI ingredient photo as the recipe screen), with progress, **add/remove your own items** (with an optional quantity), **pantry staples** (long-press, tap the −, or swipe a planned item to mark "always have" and hide it; swipe your own items to remove), and **share/export the list** (native share sheet)
 - **Dietary preferences** — pick diets in Settings to filter the home feed and search to matching recipes; **taste preferences** (set at onboarding) are also editable in Settings and float matching recipes to the top of the home feed
 - **Cookbooks** — browse, **create and delete your own**, and add/remove recipes (new accounts start with a few **starter cookbooks** built from the catalog); plus **Profile** (created / saved / cooked / reviewed tabs, with **star ratings + re-rate** on cooked recipes, and live **recipes / cookbooks / cooked** counts), **Notifications** (a real **activity feed** — your cooks, saves, meal-plan adds, imports and reviews, plus cook-timer reminders — with an unread badge, **swipe-to-dismiss** and **clear all**), **Settings**
@@ -202,7 +202,13 @@ supabase functions deploy subscribe
   URLs) or uses **vision** (for photos) and returns a structured recipe. For
   photo/screenshot imports it also uploads the photo to the `recipe-images`
   Storage bucket and uses that as the recipe's hero image (so the imported
-  recipe shows a relevant picture, not a stock one).
+  recipe shows a relevant picture, not a stock one). For **YouTube** links it
+  resolves the real video **title, channel and thumbnail** via the keyless
+  **oEmbed** endpoint and anchors extraction on the actual video — the watch
+  page's description isn't reachable from a server (datacenter IPs get a
+  stripped, consent-gated page), so it reconstructs the dish from the title
+  rather than scraping steps. The resolved channel becomes the recipe's
+  `source` (credit) and the thumbnail its hero image.
 - **`ai-tools`** — returns ingredient substitutions or simplified step text.
 - **`ingredient-image`** — returns a photo of an ingredient: serves the cached
   one from the public `ingredient-images` bucket if present, otherwise generates
@@ -328,12 +334,16 @@ on conflict (id) do nothing;
   `profiles.avatar` — so it renders across devices. If the upload fails (or in
   guest mode) the app keeps the device-local URI so the rest of the profile
   still saves.
-- **Cook-timer notifications:** step timers schedule a **local** notification
-  (`src/lib/notify.ts`) that fires at the end even when the app is backgrounded,
-  and log an in-app reminder shown on the Notifications screen. *Known
-  limitation:* local notifications were removed from **Expo Go on Android**
-  (SDK 53+), so the OS alert no-ops there (the in-app timer + reminder still
-  work) — use a dev/standalone build or Expo Go on iOS to see it fire.
+- **Cook-timer & meal notifications:** step timers schedule a **local**
+  notification (`src/lib/notify.ts`) that fires at the end even when the app is
+  backgrounded, and log an in-app reminder shown on the Notifications screen;
+  meal reminders schedule weekly. Each notification carries its `recipeId`, and
+  a response listener in `app/_layout.tsx` **deep-links a tap to that recipe**
+  (`/recipe/[id]`) — both when the app is running and when the tap cold-starts
+  it. *Known limitation:* local notifications were removed from **Expo Go on
+  Android** (SDK 53+), so the OS alert (and therefore the tap-to-open) no-ops
+  there (the in-app timer + reminder still work) — use a dev/standalone build or
+  Expo Go on iOS to see it fire.
 
 ## Design notes
 

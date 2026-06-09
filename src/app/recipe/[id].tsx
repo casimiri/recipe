@@ -17,7 +17,7 @@ import {
   Avatar, Dish, IconBtn, RatingBadge, SourceTag, StatChip, PrimaryButton, Sheet, Tag, Scrim,
 } from '../../components/atoms';
 import { listReviews, type Review } from '../../lib/repo';
-import { fmtQty, convertUnit } from '../../utils/format';
+import { fmtQty, convertUnit, timeAgo } from '../../utils/format';
 import { recipeHtml, recipeLink } from '../../lib/share';
 import { aiTool } from '../../lib/ai';
 import { IngredientIcon, useIngredientImage } from '../../components/IngredientImage';
@@ -64,6 +64,7 @@ export default function RecipeDetail() {
   const ingImg = useIngredientImage(() => setPayOpen(true));
   const [newCb, setNewCb] = useState('');
   const [reviews, setReviews] = useState<Review[] | null>(null);
+  const [showAllReviews, setShowAllReviews] = useState(false);
   const [reviewText, setReviewText] = useState('');
   const [reviewStars, setReviewStars] = useState(0);
   const [reviewBusy, setReviewBusy] = useState(false);
@@ -159,6 +160,15 @@ export default function RecipeDetail() {
 
   // The user's own review for this recipe, if they've written one.
   const myReview = reviews?.find((rv) => rv.userId === session?.user?.id) ?? null;
+
+  // Render order: your own review pinned first, then the rest (already newest
+  // first from the query). Cap the inline list so a popular recipe doesn't dump
+  // every review at once — a "Show all" toggle reveals the remainder.
+  const REVIEW_CAP = 3;
+  const orderedReviews = myReview
+    ? [myReview, ...(reviews ?? []).filter((rv) => rv.id !== myReview.id)]
+    : reviews ?? [];
+  const visibleReviews = showAllReviews ? orderedReviews : orderedReviews.slice(0, REVIEW_CAP);
 
   const openReview = () => {
     // Editing keeps your prior rating + text; a fresh review seeds from your stars.
@@ -367,12 +377,15 @@ export default function RecipeDetail() {
             <Txt style={{ fontSize: 13.5, color: t.muted }}>{tr((s) => s.recipe.noReviews)}</Txt>
           ) : (
             <View style={{ gap: 16 }}>
-              {reviews.map((rv) => (
+              {visibleReviews.map((rv) => (
                 <View key={rv.id} style={{ flexDirection: 'row', gap: 12 }}>
                   <Avatar src={rv.authorAvatar || undefined} size={38} t={t} />
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Txt style={{ fontWeight: '700', fontSize: 14, color: t.text }}>{rv.authorName}</Txt>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                        <Txt style={{ fontWeight: '700', fontSize: 14, color: t.text }}>{rv.id === myReview?.id ? tr((s) => s.recipe.yourReview) : rv.authorName}</Txt>
+                        <Txt style={{ fontSize: 12, color: t.faint }}>· {timeAgo(new Date(rv.createdAt).getTime())}</Txt>
+                      </View>
                       <View style={{ flexDirection: 'row', gap: 2 }}>
                         {[1, 2, 3, 4, 5].map((n) => <Icon.star key={n} size={13} color={n <= rv.rating ? t.star : t.border} />)}
                       </View>
@@ -381,6 +394,11 @@ export default function RecipeDetail() {
                   </View>
                 </View>
               ))}
+              {!showAllReviews && orderedReviews.length > REVIEW_CAP ? (
+                <Pressable onPress={() => setShowAllReviews(true)} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
+                  <Txt style={{ color: t.accent, fontWeight: '700', fontSize: 13.5 }}>{tr((s) => s.recipe.showAllReviews, { count: orderedReviews.length })}</Txt>
+                </Pressable>
+              ) : null}
             </View>
           )}
 
